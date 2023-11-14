@@ -1,134 +1,180 @@
 use crate::{
     geolib::{Container, Poi, Vec3d, Vec4d},
-    iolib::{get_space_time_position, load_database},
+    iolib::{get_space_time_position, load_database, SpaceTimePosition},
 };
 use chrono::prelude::*;
-use std::{collections::HashMap, f64::NAN};
-use std::{thread, time};
+use eframe::egui;
+use std::{collections::HashMap, f64::NAN, thread, time};
 
 mod geolib;
 mod iolib;
 
-// TODO
-// #Sets some variables
-// Reference_time_UTC = datetime.datetime(2020, 1, 1)
-// Epoch = datetime.datetime(1970, 1, 1)
-// Reference_time = (Reference_time_UTC - Epoch).total_seconds()
-//
+// Coordinates: x:-17068754905.863510 y:-2399480232.503227 z:-20642.813381
 
-fn main() {
-    println!("Hello, world!");
-    let database: HashMap<String, Container> = load_database();
+fn main() -> eframe::Result<()> {
+    let native_options = eframe::NativeOptions::default();
+    eframe::run_native(
+        "Weeoo Nav Tool",
+        native_options,
+        Box::new(|cc| Box::new(MyEguiApp::new(cc))),
+    )
+}
 
-    let reference_time = Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap();
+#[derive(Default)]
+struct MyEguiApp {
+    database: HashMap<String, Container>,
+    reference_time: DateTime<Utc>,
+    targets: Vec<Poi>,
+    new_space_time_position: SpaceTimePosition,
+    space_time_position: SpaceTimePosition,
+}
 
-    let mut old_pos = Vec3d {
-        x: 0.0,
-        y: 0.0,
-        z: 0.0,
-    };
+impl MyEguiApp {
+    fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        // Customize egui here with cc.egui_ctx.set_fonts and cc.egui_ctx.set_visuals.
+        // Restore app state using cc.storage (requires the "persistence" feature).
+        // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
+        // for e.g. egui::PaintCallback.
 
-    let target = database
-        .get("Daymar")
-        .unwrap()
-        .poi
-        .get("Shubin Mining Facility SCD-1")
-        .unwrap();
+        let mut new = Self::default();
+        new.database = load_database();
+        new.reference_time = Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap();
+        // TODO
+        // Redo a check on how time elapsed is computed
 
-    let target2 = database
-        .get("Daymar")
-        .unwrap()
-        .poi
-        .get("Eager Flats Aid Shelter")
-        .unwrap();
-    let target3 = database
-        .get("Daymar")
-        .unwrap()
-        .poi
-        .get("Kudre Ore")
-        .unwrap();
+        let target = new
+            .database
+            .get("Daymar")
+            .unwrap()
+            .poi
+            .get("Shubin Mining Facility SCD-1")
+            .unwrap()
+            .to_owned();
 
-    loop {
-        let Some(space_time_postion) = get_space_time_position() else {
+        let target2 = new.database
+            .get("Daymar")
+            .unwrap()
+            .poi
+            .get("Eager Flats Aid Shelter")
+            .unwrap().to_owned();
+        let target3 = new.database
+            .get("Daymar")
+            .unwrap()
+            .poi
+            .get("Kudre Ore")
+            .unwrap().to_owned();
+
+        new.targets = vec!(target, target2, target3);
+        new
+    }
+}
+
+impl eframe::App for MyEguiApp {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        if let Some(space_time_postion) = get_space_time_position() {
+            self.new_space_time_position = space_time_postion;
+        } else {
             thread::sleep(time::Duration::from_secs(1));
-            continue;
-        };
-        let current_pos = space_time_postion.coordinates;
-        let current_time = space_time_postion.timestamp;
+        }
 
-        if old_pos == current_pos {
-            continue;
-        };
-        old_pos = current_pos.clone();
+        if self.new_space_time_position.coordinates != self.space_time_position.coordinates {
+            self.space_time_position = self.new_space_time_position.clone();
+        }
 
-        println!("{current_pos:?}");
-        println!("{current_time}");
-        //New_Player_Global_coordinates
+        let current_pos = &self.space_time_position.coordinates;
+        let current_time = self.space_time_position.timestamp;
 
+        // if self.previous_coordinates == current_pos.to_owned() {
+        //     return;
+        // }
+
+        let current_container = get_current_container(&current_pos, &self.database);
         let time_passed_since_reference_in_seconds: f64 =
-            (current_time.timestamp() - reference_time.timestamp()) as f64;
+            (current_time.timestamp() - self.reference_time.timestamp()) as f64;
 
-        let current_container = get_current_container(&current_pos, &database);
-
-        let current_rotated_pos = current_pos
+        let current_local_pos = current_pos
             .clone()
             .transform_to_local(time_passed_since_reference_in_seconds, &current_container);
-        // New_player_local_rotated_coordinates
 
-        // #-------------------------------------------------player local Long Lat Height--------------------------------------------------
+
         let mut latitute = NAN;
         let mut longitude = NAN;
         let mut altitude = NAN;
 
         if current_container.name != "None" {
-            latitute = current_pos.latitude();
-            longitude = current_pos.longitude();
-            altitude = current_pos.height(&current_container);
+            latitute = current_local_pos.latitude();
+            longitude = current_local_pos.longitude();
+            altitude = current_local_pos.height(&current_container);
         }
 
-        display_target(
-            &current_pos,
-            latitute,
-            longitude,
-            target,
-            &database,
-            time_passed_since_reference_in_seconds,
-            &current_container,
-            &current_rotated_pos,
-        );
-        display_target(
-            &current_pos,
-            latitute,
-            longitude,
-            target2,
-            &database,
-            time_passed_since_reference_in_seconds,
-            &current_container,
-            &current_rotated_pos,
-        );
-        display_target(
-            &current_pos,
-            latitute,
-            longitude,
-            target3,
-            &database,
-            time_passed_since_reference_in_seconds,
-            &current_container,
-            &current_rotated_pos,
-        );
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.heading("Self Position");
+            ui.label(format!(
+                "\
+                Timestamp: {current_time},\n\
+                Coordinates: x:{} y:{} z:{},\n\
+                Container: {},\n\
+                Latitute: {latitute},\n\
+                Longitude: {longitude},\n\
+                Altitude: {altitude},\n\
+                ",
+                current_pos.x, current_pos.y, current_pos.z,
+                current_container.name,
+            ));
+            ui.separator();
+            ui.heading("Target Position");
 
-        println!(
-            "\
-            --------------------\n\
-            Self Position\n\
-            Container: {},\n\
-            Latitute: {latitute},\n\
-            Longitude: {longitude},\n\
-            Altitude: {altitude},\n\
-            --------------------",
-            current_container.name,
-        )
+            ui.spinner();
+        });
     }
+}
+
+fn mainy() {
+    // loop {
+
+    //
+    //     println!("{current_pos:?}");
+    //     println!("{current_time}");
+    //     //New_Player_Global_coordinates
+    //
+    //
+    //
+    //     // #-------------------------------------------------player local Long Lat Height--------------------------------------------------
+
+    //
+    //     display_target(
+    //         &current_pos,
+    //         latitute,
+    //         longitude,
+    //         target,
+    //         &database,
+    //         time_passed_since_reference_in_seconds,
+    //         &current_container,
+    //         &current_rotated_pos,
+    //     );
+    //     display_target(
+    //         &current_pos,
+    //         latitute,
+    //         longitude,
+    //         target2,
+    //         &database,
+    //         time_passed_since_reference_in_seconds,
+    //         &current_container,
+    //         &current_rotated_pos,
+    //     );
+    //     display_target(
+    //         &current_pos,
+    //         latitute,
+    //         longitude,
+    //         target3,
+    //         &database,
+    //         time_passed_since_reference_in_seconds,
+    //         &current_container,
+    //         &current_rotated_pos,
+    //     );
+    //
+
+    // }
 }
 
 fn display_target(

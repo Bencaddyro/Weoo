@@ -5,6 +5,7 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
 
+#[derive(Default, Clone, PartialEq)]
 pub struct SpaceTimePosition {
     pub coordinates: Vec3d,
     pub timestamp: chrono::DateTime<Utc>,

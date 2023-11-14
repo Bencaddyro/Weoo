@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::{Add, Sub};
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
 pub struct Vec3d {
     pub x: f64,
     pub y: f64,
@@ -73,7 +73,7 @@ impl Vec3d {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
 pub struct Vec4d {
     pub qw: f64,
     pub qx: f64,
@@ -86,7 +86,7 @@ impl Vec4d {
         Vec4d { qw, qx, qy, qz }
     }
 }
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct Container {
     pub name: String,
     pub coordinates: Vec3d,
@@ -105,7 +105,7 @@ pub struct Container {
     pub poi: HashMap<String, Poi>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct Poi {
     pub name: String,
     pub coordinates: Vec3d,
