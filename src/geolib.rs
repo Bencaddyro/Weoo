@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::{Add, Sub};
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
 pub struct Vec3d {
     pub x: f64,
     pub y: f64,
@@ -64,16 +64,17 @@ impl Vec3d {
         self.norm() - container.radius_body
     }
 
-    pub fn transform_to_local(self, time_elapsed: f64, container: &Container) -> Vec3d {
+    pub fn transform_to_local(&self, time_elapsed: f64, container: &Container) -> Vec3d {
         let rotation_speed_in_degrees_per_second = 0.1 * (1.0 / container.rotation_speed);
         let rotation_state_in_degrees = (rotation_speed_in_degrees_per_second * time_elapsed
             + container.rotation_adjust)
             % 360.0;
-        (self - container.coordinates.clone()).rotate((-rotation_state_in_degrees).to_radians())
+        (self.clone() - container.coordinates.clone())
+            .rotate((-rotation_state_in_degrees).to_radians())
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
 pub struct Vec4d {
     pub qw: f64,
     pub qx: f64,
@@ -86,7 +87,7 @@ impl Vec4d {
         Vec4d { qw, qx, qy, qz }
     }
 }
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
 pub struct Container {
     pub name: String,
     pub coordinates: Vec3d,
@@ -104,12 +105,38 @@ pub struct Container {
     pub grid_radius: f64,
     pub poi: HashMap<String, Poi>,
 }
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
 pub struct Poi {
     pub name: String,
     pub coordinates: Vec3d,
     pub quaternions: Vec4d,
     pub marker: bool,
     pub container: String,
+}
+
+pub fn get_current_container(pos: &Vec3d, database: &HashMap<String, Container>) -> Container {
+    let mut current_container = Container {
+        name: "None".to_string(),
+        coordinates: Vec3d::new(0.0, 0.0, 0.0),
+        quaternions: Vec4d::new(0.0, 0.0, 0.0, 0.0),
+        marker: false,
+        radius_om: 0.0,
+        radius_body: 0.0,
+        radius_arrival: 0.0,
+        time_lines: 0.0,
+        rotation_speed: 0.0,
+        rotation_adjust: 0.0,
+        orbital_radius: 0.0,
+        orbital_speed: 0.0,
+        orbital_angle: 0.0,
+        grid_radius: 0.0,
+        poi: HashMap::new(),
+    };
+
+    for c in database.values() {
+        if (c.coordinates.clone() - pos.clone()).norm() <= 3.0 * c.radius_om {
+            current_container = c.clone();
+        }
+    }
+    current_container
 }
