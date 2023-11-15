@@ -87,7 +87,7 @@ impl Vec4d {
         Vec4d { qw, qx, qy, qz }
     }
 }
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
 pub struct Container {
     pub name: String,
     pub coordinates: Vec3d,
@@ -105,8 +105,7 @@ pub struct Container {
     pub grid_radius: f64,
     pub poi: HashMap<String, Poi>,
 }
-
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
 pub struct Poi {
     pub name: String,
     pub coordinates: Vec3d,

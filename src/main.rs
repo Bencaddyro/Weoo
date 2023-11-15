@@ -4,9 +4,10 @@ use crate::{
 };
 use chrono::prelude::*;
 use eframe::egui;
+use geolib::Poi;
 use guilib::WidgetTarget;
 use std::collections::HashMap;
-use ulib::CompletePosition;
+use ulib::SelfPosition;
 
 mod geolib;
 mod guilib;
@@ -31,7 +32,9 @@ struct MyEguiApp {
     space_time_position_new: SpaceTimePosition,
     space_time_position: SpaceTimePosition,
     space_time_position_old: SpaceTimePosition,
-    complete_position: CompletePosition,
+    self_position: SelfPosition,
+    target_container: Container,
+    target_poi: Poi,
 }
 
 impl MyEguiApp {
@@ -98,19 +101,53 @@ impl eframe::App for MyEguiApp {
 
         if self.space_time_position_new.coordinates != self.space_time_position.coordinates {
             self.space_time_position = self.space_time_position_new.clone();
-            self.complete_position.update(
+            self.self_position.update(
                 &self.space_time_position,
                 &self.database,
                 self.reference_time,
             );
         }
 
-        self.complete_position.display(ctx);
+        self.self_position.display(ctx);
+
         // Targets windows
 
+        // Remove hidden targets
+        self.targets.retain(|t| t.open);
+        // Display others
         for target in &mut self.targets {
-            target.display(ctx, &self.database, &self.complete_position);
-            if target.open {}
+            target.display(ctx, &self.database, &self.self_position);
         }
+
+        egui::TopBottomPanel::bottom("bottom_panel")
+        .show(ctx, |ui| {
+                ui.label("Select Target");
+
+                egui::Grid::new("MainGrid").show(ui, |ui| {
+
+                egui::ComboBox::from_label("Container")
+                .selected_text(self.target_container.name.clone())
+                .show_ui(ui, |ui| {
+                    for container in self.database.values() {
+                        ui.selectable_value(&mut self.target_container, container.clone(), container.name.clone());
+                    }
+                });
+
+                egui::ComboBox::from_label("Poi")
+                .selected_text(self.target_poi.name.clone())
+                .show_ui(ui, |ui| {
+                    for poi in self.target_container.poi.values() {
+                        ui.selectable_value(&mut self.target_poi, poi.clone(), poi.name.clone());
+                    }
+                });
+
+                if ui.button("Add Target").clicked() { self.targets.push(WidgetTarget { open: true, target: self.target_poi.clone() }) };
+
+                ui.end_row();
+
+
+        });
+        });
+
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     geolib::{Container, Poi, Vec3d},
-    ulib::CompletePosition,
+    ulib::SelfPosition,
 };
 use std::collections::HashMap;
 
@@ -14,7 +14,7 @@ impl WidgetTarget {
         &mut self,
         ctx: &egui::Context,
         database: &HashMap<String, Container>,
-        complete_position: &CompletePosition,
+        complete_position: &SelfPosition,
     ) {
         let target_container = database.get(&self.target.container).unwrap();
         // #Grab the rotation speed of the container in the Database and convert it in degrees/s
@@ -60,12 +60,10 @@ impl WidgetTarget {
                 * (target_longitude.to_radians() - complete_position.longitude.to_radians()).cos();
         let heading = (bearing_x.atan2(bearing_y).to_degrees() + 360.0) % 360.0;
 
-        egui::Window::new(format!("Target: {}", self.target.name))
+        egui::Window::new(format!("{} - {}", self.target.container, self.target.name))
             .open(&mut self.open)
             .show(ctx, |ui| {
-                ui.label("Hello World!");
-
-                egui::Grid::new("some_unique_id").show(ui, |ui| {
+                egui::Grid::new("MainGrid").show(ui, |ui| {
                     ui.label("Latitute:");
                     ui.label(format!("{target_latitude:.0}°"));
                     ui.end_row();

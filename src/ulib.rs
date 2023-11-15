@@ -6,7 +6,7 @@ use crate::geolib::{get_current_container, Container, Vec3d};
 use crate::iolib::SpaceTimePosition;
 
 #[derive(Default)]
-pub struct CompletePosition {
+pub struct SelfPosition {
     pub space_time_position: SpaceTimePosition,
     pub elapsed_time_in_seconds: f64,
     pub container: Container,
@@ -19,7 +19,7 @@ pub struct CompletePosition {
     pub altitude: f64,
 }
 
-impl CompletePosition {
+impl SelfPosition {
     pub fn update(
         &mut self,
         space_time_position: &SpaceTimePosition,
@@ -48,10 +48,14 @@ impl CompletePosition {
     }
 
     pub fn display(&mut self, ctx: &egui::Context) {
-        egui::SidePanel::left("left_panel").show(ctx, |ui| {
-            ui.heading("Self Position");
-
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::Grid::new("some_unique_id").show(ui, |ui| {
+            egui::Grid::new("some_unique_id").show(ui, |ui| {
+                ui.heading("Self Position");
+                            ui.spinner();
+                ui.end_row();
+
+
                 ui.label("Timestamp:");
                 ui.label(format!("{}", self.space_time_position.timestamp));
                 ui.end_row();
@@ -78,10 +82,13 @@ impl CompletePosition {
                 ui.end_row();
             });
 
-            ui.separator();
-            ui.heading("Target Position");
+ui.add(egui::Separator::default().vertical());
+                ui.heading("Placeholder");
 
-            ui.spinner();
+                            ui.end_row();
+
+                       });
+
         });
     }
 }
