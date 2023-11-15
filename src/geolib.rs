@@ -64,12 +64,13 @@ impl Vec3d {
         self.norm() - container.radius_body
     }
 
-    pub fn transform_to_local(self, time_elapsed: f64, container: &Container) -> Vec3d {
+    pub fn transform_to_local(&self, time_elapsed: f64, container: &Container) -> Vec3d {
         let rotation_speed_in_degrees_per_second = 0.1 * (1.0 / container.rotation_speed);
         let rotation_state_in_degrees = (rotation_speed_in_degrees_per_second * time_elapsed
             + container.rotation_adjust)
             % 360.0;
-        (self - container.coordinates.clone()).rotate((-rotation_state_in_degrees).to_radians())
+        (self.clone() - container.coordinates.clone())
+            .rotate((-rotation_state_in_degrees).to_radians())
     }
 }
 
@@ -112,4 +113,31 @@ pub struct Poi {
     pub quaternions: Vec4d,
     pub marker: bool,
     pub container: String,
+}
+
+pub fn get_current_container(pos: &Vec3d, database: &HashMap<String, Container>) -> Container {
+    let mut current_container = Container {
+        name: "None".to_string(),
+        coordinates: Vec3d::new(0.0, 0.0, 0.0),
+        quaternions: Vec4d::new(0.0, 0.0, 0.0, 0.0),
+        marker: false,
+        radius_om: 0.0,
+        radius_body: 0.0,
+        radius_arrival: 0.0,
+        time_lines: 0.0,
+        rotation_speed: 0.0,
+        rotation_adjust: 0.0,
+        orbital_radius: 0.0,
+        orbital_speed: 0.0,
+        orbital_angle: 0.0,
+        grid_radius: 0.0,
+        poi: HashMap::new(),
+    };
+
+    for c in database.values() {
+        if (c.coordinates.clone() - pos.clone()).norm() <= 3.0 * c.radius_om {
+            current_container = c.clone();
+        }
+    }
+    current_container
 }
