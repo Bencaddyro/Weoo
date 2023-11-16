@@ -9535,7 +9535,28 @@
                     "QTMarker": "TRUE"
                 }
             }
+        },
+        "Space": {
+            "Name": "Space",
+            "X": 0.0,
+            "Y": 0.0,
+            "Z": 0.0,
+            "qw": 0.0,
+            "qx": 0.0,
+            "qy": 0.0,
+            "qz": 0.0,
+            "QTMarker": "FALSE",
+            "OM Radius": 0.0,
+            "Body Radius": 0.0,
+            "Arrival Radius": 0.0,
+            "Time Lines": 0.0,
+            "Rotation Speed": 0.0,
+            "Rotation Adjust": 0.0,
+            "Orbital Radius": 0.0,
+            "Orbital Speed": 0.0,
+            "Orbital Angle": 0.0,
+            "Grid Radius": 0.0,
+            "POI": {}
         }
-    },
-    "Space_POI": {}
+    }
 }

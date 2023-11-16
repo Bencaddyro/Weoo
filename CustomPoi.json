@@ -1,0 +1,13 @@
+{
+  "Test daymar": {
+    "name": "Test custom POI",
+    "container": "Daymar",
+    "coordinates": {
+      "x": 160.14628909478373,
+      "y": -138.61574735179286,
+      "z": 210.614307494
+    },
+    "quaternions": null,
+    "marker": null
+  }
+}

@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 
 use crate::geolib::{get_current_container, Container, Vec3d};
 use crate::iolib::SpaceTimePosition;
+use crate::save_current_position;
 
 #[derive(Default)]
 pub struct SelfPosition {
@@ -17,6 +18,8 @@ pub struct SelfPosition {
     pub latitude: f64,
     pub longitude: f64,
     pub altitude: f64,
+
+    new_name: String,
 }
 
 impl SelfPosition {
@@ -40,7 +43,7 @@ impl SelfPosition {
             .absolute_coordinates
             .transform_to_local(self.elapsed_time_in_seconds, &self.container);
 
-        if self.container.name != "None" {
+        if self.container.name != "Space" {
             self.latitude = self.local_coordinates.latitude();
             self.longitude = self.local_coordinates.longitude();
             self.altitude = self.local_coordinates.height(&self.container);
@@ -49,46 +52,61 @@ impl SelfPosition {
 
     pub fn display(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            egui::Grid::new("some_unique_id").show(ui, |ui| {
-            egui::Grid::new("some_unique_id").show(ui, |ui| {
-                ui.heading("Self Position");
-                            ui.spinner();
-                ui.end_row();
+            egui::Grid::new("MainTopGrid").show(ui, |ui| {
+                egui::Grid::new("SelfPosition").show(ui, |ui| {
+                    ui.heading("Self Position");
+                    ui.spinner();
+                    ui.end_row();
 
+                    ui.label("Timestamp:");
+                    ui.label(format!("{}", self.space_time_position.timestamp));
+                    ui.end_row();
+                    ui.label("Coordinates:");
+                    ui.label(format!(
+                        "x:{} y:{} z:{}",
+                        self.space_time_position.coordinates.x,
+                        self.space_time_position.coordinates.y,
+                        self.space_time_position.coordinates.z
+                    ));
+                    ui.end_row();
+                    ui.label("Container:");
+                    ui.label(self.container.name.to_string());
+                    ui.end_row();
 
-                ui.label("Timestamp:");
-                ui.label(format!("{}", self.space_time_position.timestamp));
-                ui.end_row();
-                ui.label("Coordinates:");
-                ui.label(format!(
-                    "x:{} y:{} z:{}",
-                    self.space_time_position.coordinates.x,
-                    self.space_time_position.coordinates.y,
-                    self.space_time_position.coordinates.z
-                ));
-                ui.end_row();
-                ui.label("Container:");
-                ui.label(self.container.name.to_string());
-                ui.end_row();
+                    ui.label("Latitute:");
+                    ui.label(format!("{:.0}°", self.latitude));
+                    ui.end_row();
+                    ui.label("Longitude:");
+                    ui.label(format!("{:.0}°", self.longitude));
+                    ui.end_row();
+                    ui.label("Altitude:");
+                    ui.label(format!("{:.3}km", self.altitude));
+                    ui.end_row();
+                });
 
-                ui.label("Latitute:");
-                ui.label(format!("{:.0}°", self.latitude));
-                ui.end_row();
-                ui.label("Longitude:");
-                ui.label(format!("{:.0}°", self.longitude));
-                ui.end_row();
-                ui.label("Altitude:");
-                ui.label(format!("{:.3}km", self.altitude));
+                ui.add(egui::Separator::default().vertical());
+
+                egui::Grid::new("SavePoi").show(ui, |ui| {
+
+                    ui.heading("Save Poi");
+                    ui.end_row();
+
+                    ui.label("Name:");
+
+                    ui.add(egui::TextEdit::singleline(&mut self.new_name).hint_text("Custom Poi"));
+                    if ui.button("Save").clicked() {
+                        save_current_position(
+                            self.new_name.clone(),
+                            &self.container,
+                            &self.absolute_coordinates,
+                            &self.local_coordinates,
+                        )
+                    };
+
+                    ui.end_row();
+                });
                 ui.end_row();
             });
-
-ui.add(egui::Separator::default().vertical());
-                ui.heading("Placeholder");
-
-                            ui.end_row();
-
-                       });
-
         });
     }
 }

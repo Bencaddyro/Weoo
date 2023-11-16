@@ -1,19 +1,18 @@
 use crate::{
     geolib::Container,
-    iolib::{get_space_time_position, load_database, SpaceTimePosition},
+    iolib::{get_space_time_position, load_database},
 };
 use chrono::prelude::*;
 use eframe::egui;
-use geolib::Poi;
-use guilib::WidgetTarget;
+use geolib::SpaceTimePosition;
+use mainlib::{WidgetPoi, WidgetPosition, WidgetTarget, WidgetTargetSelection};
 use std::collections::HashMap;
-use ulib::SelfPosition;
 
 mod geolib;
 mod guilib;
 mod iolib;
-mod ulib;
-// Coordinates: x:-17068754905.863510 y:-2399480232.503227 z:-20642.813381
+mod mainlib;
+// Coordinates: x:-17068754905.863510 y:-2399480232.5053227 z:-20642.813381
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
@@ -28,13 +27,14 @@ fn main() -> eframe::Result<()> {
 struct MyEguiApp {
     database: HashMap<String, Container>,
     reference_time: DateTime<Utc>,
-    targets: Vec<WidgetTarget>,
+    elapsed_time_in_seconds: f64,
+
     space_time_position_new: SpaceTimePosition,
     space_time_position: SpaceTimePosition,
-    space_time_position_old: SpaceTimePosition,
-    self_position: SelfPosition,
-    target_container: Container,
-    target_poi: Poi,
+
+    position: WidgetPosition,
+    target_selection: WidgetTargetSelection,
+    poi_exporter: WidgetPoi,
 }
 
 impl MyEguiApp {
@@ -44,33 +44,23 @@ impl MyEguiApp {
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
 
-        let mut new = MyEguiApp {
-            database: load_database(),
-            reference_time: Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap(),
-            ..Default::default()
-        };
-        // TODO
-        // Redo a check on how time elapsed is computed
-
-        let target = new
-            .database
+        let database = load_database();
+        // Hardcode targets example for Daymar Rally
+        let target1 = database
             .get("Daymar")
             .unwrap()
             .poi
             .get("Shubin Mining Facility SCD-1")
             .unwrap()
             .to_owned();
-
-        let target2 = new
-            .database
+        let target2 = database
             .get("Daymar")
             .unwrap()
             .poi
             .get("Eager Flats Aid Shelter")
             .unwrap()
             .to_owned();
-        let target3 = new
-            .database
+        let target3 = database
             .get("Daymar")
             .unwrap()
             .poi
@@ -78,8 +68,11 @@ impl MyEguiApp {
             .unwrap()
             .to_owned();
 
-        new.targets = vec![
-            WidgetTarget { target, open: true },
+        let targets = vec![
+            WidgetTarget {
+                target: target1,
+                open: true,
+            },
             WidgetTarget {
                 target: target2,
                 open: true,
@@ -89,7 +82,15 @@ impl MyEguiApp {
                 open: true,
             },
         ];
-        new
+
+        MyEguiApp {
+            database,
+            reference_time: Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap(),
+
+            position: WidgetPosition::new(),
+            target_selection: WidgetTargetSelection::new(targets),
+            ..Default::default()
+        }
     }
 }
 
@@ -100,54 +101,32 @@ impl eframe::App for MyEguiApp {
         }
 
         if self.space_time_position_new.coordinates != self.space_time_position.coordinates {
-            self.space_time_position = self.space_time_position_new.clone();
-            self.self_position.update(
+            self.space_time_position = self.space_time_position_new;
+            self.position.update(
                 &self.space_time_position,
                 &self.database,
-                self.reference_time,
+                self.elapsed_time_in_seconds,
             );
         }
 
-        self.self_position.display(ctx);
+        self.elapsed_time_in_seconds = (self.space_time_position.timestamp.timestamp()
+            - self.reference_time.timestamp()) as f64;
 
-        // Targets windows
+        // Display self position
+        self.position.display(ctx);
 
-        // Remove hidden targets
-        self.targets.retain(|t| t.open);
-        // Display others
-        for target in &mut self.targets {
-            target.display(ctx, &self.database, &self.self_position);
-        }
+        // Display targets & target selector
+        self.target_selection.display(
+            ctx,
+            &self.database,
+            self.elapsed_time_in_seconds,
+            &self.position,
+        );
 
-        egui::TopBottomPanel::bottom("bottom_panel")
-        .show(ctx, |ui| {
-                ui.label("Select Target");
+        // Display Poi exporter
+        self.poi_exporter
+            .display(ctx, &self.position, &self.database);
 
-                egui::Grid::new("MainGrid").show(ui, |ui| {
-
-                egui::ComboBox::from_label("Container")
-                .selected_text(self.target_container.name.clone())
-                .show_ui(ui, |ui| {
-                    for container in self.database.values() {
-                        ui.selectable_value(&mut self.target_container, container.clone(), container.name.clone());
-                    }
-                });
-
-                egui::ComboBox::from_label("Poi")
-                .selected_text(self.target_poi.name.clone())
-                .show_ui(ui, |ui| {
-                    for poi in self.target_container.poi.values() {
-                        ui.selectable_value(&mut self.target_poi, poi.clone(), poi.name.clone());
-                    }
-                });
-
-                if ui.button("Add Target").clicked() { self.targets.push(WidgetTarget { open: true, target: self.target_poi.clone() }) };
-
-                ui.end_row();
-
-
-        });
-        });
-
+        self.database = self.poi_exporter.database.clone();
     }
 }
