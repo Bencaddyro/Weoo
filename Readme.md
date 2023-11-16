@@ -5,11 +5,10 @@ Heavily inspired by:
 - [Star Citizen Navigation](https://github.com/Valalol/Star-Citizen-Navigation)
 - [Projet Jericho](https://github.com/Graupunkt/project-jericho)
 
+This tool aim to provide a reliable navigation tool to find, save, import, export various Point of Interest in the Stanton system.
+Right now the focus is primarly on planetary navigation fo the upcoming 2024 Daymar Rally
+
 TODO:
-- save & export poi
-- target selection
-- display map
+- display map on planetary mode
 - calculate current heading based on last 2 points
 - get path correction based on current heading & target heading
-- GUI
-- lots of other things

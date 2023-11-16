@@ -27,7 +27,7 @@ fn main() -> eframe::Result<()> {
 struct MyEguiApp {
     database: HashMap<String, Container>,
     reference_time: DateTime<Utc>,
-    elapsed_time_in_seconds: f64,
+    time_elapsed: f64,
 
     space_time_position_new: SpaceTimePosition,
     space_time_position: SpaceTimePosition,
@@ -47,46 +47,45 @@ impl MyEguiApp {
         let database = load_database();
         // Hardcode targets example for Daymar Rally
         let target1 = database
-            .get("Daymar")
+            .get("Yela")
             .unwrap()
             .poi
-            .get("Shubin Mining Facility SCD-1")
+            .get("BennyHenge")
             .unwrap()
             .to_owned();
-        let target2 = database
-            .get("Daymar")
-            .unwrap()
-            .poi
-            .get("Eager Flats Aid Shelter")
-            .unwrap()
-            .to_owned();
-        let target3 = database
-            .get("Daymar")
-            .unwrap()
-            .poi
-            .get("Kudre Ore")
-            .unwrap()
-            .to_owned();
+        // let target1 = database
+        //     .get("Daymar")
+        //     .unwrap()
+        //     .poi
+        //     .get("Shubin Mining Facility SCD-1")
+        //     .unwrap()
+        //     .to_owned();
+        // let target2 = database
+        //     .get("Daymar")
+        //     .unwrap()
+        //     .poi
+        //     .get("Eager Flats Aid Shelter")
+        //     .unwrap()
+        //     .to_owned();
+        // let target3 = database
+        //     .get("Daymar")
+        //     .unwrap()
+        //     .poi
+        //     .get("Kudre Ore")
+        //     .unwrap()
+        //     .to_owned();
 
-        let targets = vec![
-            WidgetTarget {
-                target: target1,
-                open: true,
-            },
-            WidgetTarget {
-                target: target2,
-                open: true,
-            },
-            WidgetTarget {
-                target: target3,
-                open: true,
-            },
-        ];
+        let mut targets = HashMap::new();
+        targets.insert(
+            format!("{} - {}", target1.container, target1.name),
+            WidgetTarget::new(target1, &database),
+        );
+        // targets.insert(format!("{} - {}",target1.container, target1.name), WidgetTarget::new(target2, &database));
+        // targets.insert(format!("{} - {}",target1.container, target1.name), WidgetTarget::new(target3, &database));
 
         MyEguiApp {
             database,
             reference_time: Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap(),
-
             position: WidgetPosition::new(),
             target_selection: WidgetTargetSelection::new(targets),
             ..Default::default()
@@ -102,30 +101,25 @@ impl eframe::App for MyEguiApp {
 
         if self.space_time_position_new.coordinates != self.space_time_position.coordinates {
             self.space_time_position = self.space_time_position_new;
-            self.position.update(
-                &self.space_time_position,
-                &self.database,
-                self.elapsed_time_in_seconds,
-            );
-        }
+            self.time_elapsed = (self.space_time_position.timestamp - self.reference_time)
+                .num_nanoseconds()
+                .unwrap() as f64
+                / 1e9;
 
-        self.elapsed_time_in_seconds = (self.space_time_position.timestamp.timestamp()
-            - self.reference_time.timestamp()) as f64;
+            self.position
+                .update(&self.space_time_position, &self.database, self.time_elapsed);
+        }
 
         // Display self position
         self.position.display(ctx);
 
         // Display targets & target selector
-        self.target_selection.display(
-            ctx,
-            &self.database,
-            self.elapsed_time_in_seconds,
-            &self.position,
-        );
+        self.target_selection
+            .display(ctx, &self.database, self.time_elapsed, &self.position);
 
         // Display Poi exporter
-        self.poi_exporter
-            .display(ctx, &self.position, &self.database);
+        self.poi_exporter.update(&self.database, &self.position);
+        self.poi_exporter.display(ctx);
 
         self.database = self.poi_exporter.database.clone();
     }

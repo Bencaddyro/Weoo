@@ -9,5 +9,16 @@
     },
     "quaternions": null,
     "marker": null
+  },
+  "BetterBennyHenge": {
+    "name": "BetterBennyHenge",
+    "container": "Yela",
+    "coordinates": {
+      "x": -627.4303369942565,
+      "y": 132.0226908938478,
+      "z": -1.813837507
+    },
+    "quaternions": null,
+    "marker": null
   }
 }
