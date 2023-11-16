@@ -1,12 +1,132 @@
 use crate::{
-    geolib::{Container, Poi, Vec3d},
-    mainlib::SelfPosition,
+    geolib::{Container, Vec3d},
+    mainlib::{WidgetPoi, WidgetPosition, WidgetTarget, WidgetTargetSelection},
 };
 use std::collections::HashMap;
 
-pub struct WidgetTarget {
-    pub open: bool,
-    pub target: Poi,
+impl WidgetPosition {
+    pub fn display(&mut self, ctx: &egui::Context) {
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            egui::Grid::new("MainTopGrid").show(ui, |ui| {
+                egui::Grid::new("SelfPosition").show(ui, |ui| {
+                    ui.heading("Self Position");
+                    ui.spinner();
+                    ui.end_row();
+
+                    ui.label("Timestamp:");
+                    ui.label(format!("{}", self.space_time_position.timestamp));
+                    ui.end_row();
+                    ui.label("Coordinates:");
+                    ui.label(format!(
+                        "x:{} y:{} z:{}",
+                        self.space_time_position.coordinates.x,
+                        self.space_time_position.coordinates.y,
+                        self.space_time_position.coordinates.z
+                    ));
+                    ui.end_row();
+                    ui.label("Container:");
+                    ui.label(self.container.name.to_string());
+                    ui.end_row();
+
+                    ui.label("Latitute:");
+                    ui.label(format!("{:.0}°", self.latitude));
+                    ui.end_row();
+                    ui.label("Longitude:");
+                    ui.label(format!("{:.0}°", self.longitude));
+                    ui.end_row();
+                    ui.label("Altitude:");
+                    ui.label(format!("{:.3}km", self.altitude));
+                    ui.end_row();
+                });
+
+                ui.add(egui::Separator::default().vertical());
+
+                ui.end_row();
+            });
+        });
+    }
+}
+
+impl WidgetTargetSelection {
+    pub fn display(
+        &mut self,
+        ctx: &egui::Context,
+        database: &HashMap<String, Container>,
+        elapsed_time_in_seconds: f64,
+        position: &WidgetPosition,
+    ) {
+        egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+            ui.label("Select Target");
+
+            egui::Grid::new("MainGrid").show(ui, |ui| {
+                egui::ComboBox::from_label("Container")
+                    .selected_text(self.target_container.name.clone())
+                    .show_ui(ui, |ui| {
+                        for container in database.values() {
+                            ui.selectable_value(
+                                &mut self.target_container,
+                                container.clone(),
+                                container.name.clone(),
+                            );
+                        }
+                    });
+
+                egui::ComboBox::from_label("Poi")
+                    .selected_text(self.target_poi.name.clone())
+                    .show_ui(ui, |ui| {
+                        for poi in database
+                            .get(&self.target_container.name)
+                            .unwrap()
+                            .poi
+                            .values()
+                        {
+                            ui.selectable_value(
+                                &mut self.target_poi,
+                                poi.clone(),
+                                poi.name.clone(),
+                            );
+                        }
+                    });
+
+                if ui.button("Add Target").clicked() {
+                    self.targets.push(WidgetTarget {
+                        open: true,
+                        target: self.target_poi.clone(),
+                    })
+                };
+
+                ui.end_row();
+            });
+        });
+
+        // Remove hidden targets
+        self.targets.retain(|t| t.open);
+        // Display targets windows
+        for target in &mut self.targets {
+            target.display(ctx, database, elapsed_time_in_seconds, position);
+        }
+    }
+}
+
+impl WidgetPoi {
+    pub fn display(
+        &mut self,
+        ctx: &egui::Context,
+        position: &WidgetPosition,
+        database: &HashMap<String, Container>,
+    ) {
+        self.database = database.clone();
+        egui::Window::new("Save Poi")
+            // .open(&mut self.open)
+            .show(ctx, |ui| {
+                ui.label("Name:");
+
+                ui.add(egui::TextEdit::singleline(&mut self.name).hint_text("Custom Poi"));
+                if ui.button("Save").clicked() {
+                    self.save_current_position(position);
+                };
+            });
+    }
 }
 
 impl WidgetTarget {
@@ -14,7 +134,8 @@ impl WidgetTarget {
         &mut self,
         ctx: &egui::Context,
         database: &HashMap<String, Container>,
-        complete_position: &SelfPosition,
+        elapsed_time_in_seconds: f64,
+        complete_position: &WidgetPosition,
     ) {
         let target_container = database.get(&self.target.container).unwrap();
         // #Grab the rotation speed of the container in the Database and convert it in degrees/s
@@ -24,7 +145,7 @@ impl WidgetTarget {
             0.1 * (1.0 / target_rotation_speed_in_hours_per_rotation); //TODO handle divide by 0
                                                                        // #Get the actual rotation state in degrees using the rotation speed of the container, the actual time and a rotational adjustment value
         let target_rotation_state_in_degrees = (target_rotation_speed_in_degrees_per_second
-            * complete_position.elapsed_time_in_seconds
+            * elapsed_time_in_seconds
             + target_container.rotation_adjust)
             % 360.0;
         // #get the new player rotated coordinates
@@ -41,11 +162,11 @@ impl WidgetTarget {
         // #---------------------------------------------------Distance to target----------------------------------------------------------
         let new_distance_to_target: Vec3d =
             if complete_position.container.name == self.target.container {
-                self.target.coordinates.clone() - complete_position.local_coordinates.clone()
+                self.target.coordinates - complete_position.local_coordinates
             } else {
-                target_rotated_coordinates.clone() + target_container.coordinates.clone()
-                    - complete_position.local_coordinates.clone()
-                    + complete_position.absolute_coordinates.clone()
+                target_rotated_coordinates + target_container.coordinates
+                    - complete_position.local_coordinates
+                    + complete_position.absolute_coordinates
             };
         let distance = new_distance_to_target.norm();
 

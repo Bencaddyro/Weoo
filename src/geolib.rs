@@ -1,8 +1,15 @@
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::{Add, Sub};
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
+#[derive(Default, Copy, Clone, PartialEq)]
+pub struct SpaceTimePosition {
+    pub coordinates: Vec3d,
+    pub timestamp: chrono::DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Copy, Clone, PartialEq, Default)]
 pub struct Vec3d {
     pub x: f64,
     pub y: f64,
@@ -69,12 +76,11 @@ impl Vec3d {
         let rotation_state_in_degrees = (rotation_speed_in_degrees_per_second * time_elapsed
             + container.rotation_adjust)
             % 360.0;
-        (self.clone() - container.coordinates.clone())
-            .rotate((-rotation_state_in_degrees).to_radians())
+        (*self - container.coordinates).rotate((-rotation_state_in_degrees).to_radians())
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Default)]
+#[derive(Debug, Deserialize, Serialize, Copy, Clone, PartialEq, Default)]
 pub struct Vec4d {
     pub qw: f64,
     pub qx: f64,
@@ -134,7 +140,7 @@ pub fn get_current_container(pos: &Vec3d, database: &HashMap<String, Container>)
     };
 
     for c in database.values() {
-        if (c.coordinates.clone() - pos.clone()).norm() <= 3.0 * c.radius_om {
+        if (c.coordinates - *pos).norm() <= 3.0 * c.radius_om {
             current_container = c.clone();
         }
     }

@@ -1,15 +1,9 @@
-use crate::geolib::{Container, Poi, Vec3d, Vec4d};
+use crate::geolib::{Container, Poi, SpaceTimePosition, Vec3d, Vec4d};
 use arboard::Clipboard;
 use chrono::Utc;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
-
-#[derive(Default, Clone, PartialEq)]
-pub struct SpaceTimePosition {
-    pub coordinates: Vec3d,
-    pub timestamp: chrono::DateTime<Utc>,
-}
 
 fn get_clipboard() -> String {
     let Ok(mut clipboard) = Clipboard::new() else {
@@ -71,14 +65,15 @@ pub fn load_database() -> HashMap<String, Container> {
                         qy: e.get("qy").unwrap().as_f64().unwrap(),
                         qz: e.get("qz").unwrap().as_f64().unwrap(),
                     }),
-                    marker: Some(e
-                        .get("QTMarker")
-                        .unwrap()
-                        .to_string()
-                        .replace('"', "")
-                        .to_lowercase()
-                        .parse()
-                        .unwrap()),
+                    marker: Some(
+                        e.get("QTMarker")
+                            .unwrap()
+                            .to_string()
+                            .replace('"', "")
+                            .to_lowercase()
+                            .parse()
+                            .unwrap(),
+                    ),
                 };
                 poi.insert(new_poi.name.clone(), new_poi);
             }
@@ -121,11 +116,18 @@ pub fn load_database() -> HashMap<String, Container> {
 
     // CustomPoi.json
     if let Ok(file) = fs::File::open("CustomPoi.json") {
-        let json: HashMap<String, Poi> = serde_json::from_reader(file).expect("file should be proper JSON");
+        let json: HashMap<String, Poi> =
+            serde_json::from_reader(file).expect("file should be proper JSON");
 
         for poi in json.into_values() {
-            if !containers.contains_key(&poi.container) { continue }
-            containers.get_mut(&poi.container).unwrap().poi.insert(poi.name.clone(),poi);
+            if !containers.contains_key(&poi.container) {
+                continue;
+            }
+            containers
+                .get_mut(&poi.container)
+                .unwrap()
+                .poi
+                .insert(poi.name.clone(), poi);
         }
     }
 

@@ -1,11 +1,11 @@
 {
-  "oopsie": {
-    "name": "Test",
-    "container": "Space",
+  "Test daymar": {
+    "name": "Test custom POI",
+    "container": "Daymar",
     "coordinates": {
-      "x": -17068754.90586351,
-      "y": -2399480.232505323,
-      "z": -20.642813381
+      "x": 160.14628909478373,
+      "y": -138.61574735179286,
+      "z": 210.614307494
     },
     "quaternions": null,
     "marker": null
