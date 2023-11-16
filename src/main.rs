@@ -4,16 +4,16 @@ use crate::{
 };
 use chrono::prelude::*;
 use eframe::egui;
-use geolib::Poi;
+use geolib::{Poi, Vec3d};
 use guilib::WidgetTarget;
-use std::collections::HashMap;
-use ulib::SelfPosition;
+use std::{collections::HashMap, fs};
+use mainlib::SelfPosition;
 
 mod geolib;
 mod guilib;
 mod iolib;
-mod ulib;
-// Coordinates: x:-17068754905.863510 y:-2399480232.503227 z:-20642.813381
+mod mainlib;
+// Coordinates: x:-17068754905.863510 y:-2399480232.5053227 z:-20642.813381
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
@@ -119,35 +119,84 @@ impl eframe::App for MyEguiApp {
             target.display(ctx, &self.database, &self.self_position);
         }
 
-        egui::TopBottomPanel::bottom("bottom_panel")
-        .show(ctx, |ui| {
-                ui.label("Select Target");
+        egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+            ui.label("Select Target");
 
-                egui::Grid::new("MainGrid").show(ui, |ui| {
-
+            egui::Grid::new("MainGrid").show(ui, |ui| {
                 egui::ComboBox::from_label("Container")
-                .selected_text(self.target_container.name.clone())
-                .show_ui(ui, |ui| {
-                    for container in self.database.values() {
-                        ui.selectable_value(&mut self.target_container, container.clone(), container.name.clone());
-                    }
-                });
+                    .selected_text(self.target_container.name.clone())
+                    .show_ui(ui, |ui| {
+                        for container in self.database.values() {
+                            ui.selectable_value(
+                                &mut self.target_container,
+                                container.clone(),
+                                container.name.clone(),
+                            );
+                        }
+                    });
 
                 egui::ComboBox::from_label("Poi")
-                .selected_text(self.target_poi.name.clone())
-                .show_ui(ui, |ui| {
-                    for poi in self.target_container.poi.values() {
-                        ui.selectable_value(&mut self.target_poi, poi.clone(), poi.name.clone());
-                    }
-                });
+                    .selected_text(self.target_poi.name.clone())
+                    .show_ui(ui, |ui| {
+                        for poi in self.target_container.poi.values() {
+                            ui.selectable_value(
+                                &mut self.target_poi,
+                                poi.clone(),
+                                poi.name.clone(),
+                            );
+                        }
+                    });
 
-                if ui.button("Add Target").clicked() { self.targets.push(WidgetTarget { open: true, target: self.target_poi.clone() }) };
+                if ui.button("Add Target").clicked() {
+                    self.targets.push(WidgetTarget {
+                        open: true,
+                        target: self.target_poi.clone(),
+                    })
+                };
 
                 ui.end_row();
-
-
+            });
         });
-        });
-
     }
+}
+
+fn save_current_position(
+    name: String,
+    container: &Container,
+    absolute_coordinates: &Vec3d,
+    local_coordinates: &Vec3d,
+) {
+
+    let mut custom_pois: HashMap<String,Poi>;
+    // Open Custom Poi file
+    if let Ok(file) = fs::File::open("CustomPoi.json") {
+        custom_pois= serde_json::from_reader(file).expect("file should be proper JSON");
+    } else {
+        println!("No file");
+        custom_pois = HashMap::new();
+    };
+
+    // Search for existing Poi with this name
+    if custom_pois.contains_key(&name) {
+        println!("Poi already exist, default override")
+    }
+
+    let new_poi;
+    if container.name == "Space" {
+        new_poi = Poi{name: name.clone(), container: "Space".to_string(), coordinates: absolute_coordinates.to_owned(), quaternions: None, marker: None};
+    } else {
+        new_poi = Poi{name: name.clone(), container: container.name.clone(), coordinates: local_coordinates.to_owned(), quaternions: None, marker: None};
+    }
+    // Add to set
+    custom_pois.insert(name.clone(), new_poi);
+
+    // Add to live database
+
+    // Write files
+    let mut file = std::fs::File::create("CustomPoi.json").expect("This should work");
+    serde_json::to_writer_pretty(&mut file, &custom_pois).expect("Fail to write cutom poi json");
+
+
+
+
 }

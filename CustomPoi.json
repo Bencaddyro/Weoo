@@ -1,0 +1,13 @@
+{
+  "oopsie": {
+    "name": "Test",
+    "container": "Space",
+    "coordinates": {
+      "x": -17068754.90586351,
+      "y": -2399480.232505323,
+      "z": -20.642813381
+    },
+    "quaternions": null,
+    "marker": null
+  }
+}

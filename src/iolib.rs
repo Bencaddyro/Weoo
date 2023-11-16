@@ -41,6 +41,7 @@ pub fn get_space_time_position() -> Option<SpaceTimePosition> {
 }
 
 pub fn load_database() -> HashMap<String, Container> {
+    // Database.json
     let file = fs::File::open("Database.json").expect("file should open read only");
     let json: HashMap<String, HashMap<String, HashMap<String, serde_json::Value>>> =
         serde_json::from_reader(file).expect("file should be proper JSON");
@@ -64,20 +65,20 @@ pub fn load_database() -> HashMap<String, Container> {
                         y: e.get("Y").unwrap().as_f64().unwrap(),
                         z: e.get("Z").unwrap().as_f64().unwrap(),
                     },
-                    quaternions: Vec4d {
+                    quaternions: Some(Vec4d {
                         qw: e.get("qw").unwrap().as_f64().unwrap(),
                         qx: e.get("qx").unwrap().as_f64().unwrap(),
                         qy: e.get("qy").unwrap().as_f64().unwrap(),
                         qz: e.get("qz").unwrap().as_f64().unwrap(),
-                    },
-                    marker: e
+                    }),
+                    marker: Some(e
                         .get("QTMarker")
                         .unwrap()
                         .to_string()
                         .replace('"', "")
                         .to_lowercase()
                         .parse()
-                        .unwrap(),
+                        .unwrap()),
                 };
                 poi.insert(new_poi.name.clone(), new_poi);
             }
@@ -117,7 +118,16 @@ pub fn load_database() -> HashMap<String, Container> {
             containers.insert(elem.name.clone(), elem);
         }
     }
-    // println!("blah!");
-    // println!("{containers:?}");
+
+    // CustomPoi.json
+    if let Ok(file) = fs::File::open("CustomPoi.json") {
+        let json: HashMap<String, Poi> = serde_json::from_reader(file).expect("file should be proper JSON");
+
+        for poi in json.into_values() {
+            if !containers.contains_key(&poi.container) { continue }
+            containers.get_mut(&poi.container).unwrap().poi.insert(poi.name.clone(),poi);
+        }
+    }
+
     containers
 }

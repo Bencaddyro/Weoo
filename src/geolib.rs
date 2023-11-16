@@ -108,15 +108,15 @@ pub struct Container {
 #[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
 pub struct Poi {
     pub name: String,
-    pub coordinates: Vec3d,
-    pub quaternions: Vec4d,
-    pub marker: bool,
     pub container: String,
+    pub coordinates: Vec3d,
+    pub quaternions: Option<Vec4d>,
+    pub marker: Option<bool>,
 }
 
 pub fn get_current_container(pos: &Vec3d, database: &HashMap<String, Container>) -> Container {
     let mut current_container = Container {
-        name: "None".to_string(),
+        name: "Space".to_string(),
         coordinates: Vec3d::new(0.0, 0.0, 0.0),
         quaternions: Vec4d::new(0.0, 0.0, 0.0, 0.0),
         marker: false,
