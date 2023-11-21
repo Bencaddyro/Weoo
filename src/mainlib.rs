@@ -1,6 +1,5 @@
-use std::{collections::HashMap, f64::NAN, fs};
-
 use crate::geolib::{get_current_container, Container, Poi, SpaceTimePosition, Vec3d};
+use std::{collections::HashMap, f64::NAN, fs};
 
 #[derive(Clone, Default)]
 pub struct WidgetPosition {
@@ -13,6 +12,38 @@ pub struct WidgetPosition {
     pub latitude: f64,
     pub longitude: f64,
     pub altitude: f64,
+}
+
+#[derive(Default)]
+pub struct WidgetPoi {
+    pub database: HashMap<String, Container>,
+    pub name: String,
+    pub position: WidgetPosition,
+}
+
+#[derive(Default)]
+pub struct WidgetTargetSelection {
+    pub target_container: Container,
+    pub target_poi: Poi,
+    pub targets: HashMap<String, WidgetTarget>,
+}
+
+#[derive(Default)]
+pub struct WidgetTarget {
+    pub open: bool,
+    pub target: Poi,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub altitude: f64,
+    pub distance: f64,
+    pub heading: f64,
+    pub delta_distance: Vec3d,
+}
+
+#[derive(Default)]
+pub struct WidgetMap {
+    pub open: bool,
+    pub targets: HashMap<String, Poi>,
 }
 
 impl WidgetPosition {
@@ -44,106 +75,6 @@ impl WidgetPosition {
             self.longitude = self.local_coordinates.longitude();
             self.altitude = self.local_coordinates.altitude(&self.container);
         }
-    }
-}
-
-#[derive(Default)]
-pub struct WidgetTargetSelection {
-    pub target_container: Container,
-    pub target_poi: Poi,
-    pub targets: HashMap<String, WidgetTarget>,
-}
-
-impl WidgetTargetSelection {
-    pub fn new(targets: HashMap<String, WidgetTarget>) -> Self {
-        Self {
-            targets,
-            ..Default::default()
-        }
-    }
-}
-
-#[derive(Default)]
-pub struct WidgetPoi {
-    pub database: HashMap<String, Container>,
-    pub name: String,
-    pub position: WidgetPosition,
-}
-
-#[derive(Default)]
-pub struct WidgetTarget {
-    pub open: bool,
-    pub target: Poi,
-    pub latitude: f64,
-    pub longitude: f64,
-    pub altitude: f64,
-    pub distance: f64,
-    pub heading: f64,
-    pub delta_distance: Vec3d,
-}
-
-impl WidgetTarget {
-    pub fn new(target: Poi, database: &HashMap<String, Container>) -> Self {
-        Self {
-            open: true,
-            latitude: target.coordinates.latitude(),
-            longitude: target.coordinates.longitude(),
-            altitude: target
-                .coordinates
-                .altitude(database.get(&target.container).unwrap_or_else(|| {
-                    panic!("No Container with that name : \"{}\"", &target.container)
-                })),
-
-            target,
-            ..Default::default()
-        }
-    }
-
-    pub fn update(
-        &mut self,
-        database: &HashMap<String, Container>,
-        elapsed_time_in_seconds: f64,
-        complete_position: &WidgetPosition,
-    ) {
-        let target_container = database.get(&self.target.container).unwrap();
-        // #Grab the rotation speed of the container in the Database and convert it in degrees/s
-        let target_rotation_speed_in_hours_per_rotation = target_container.rotation_speed;
-
-        let target_rotation_speed_in_degrees_per_second =
-            0.1 * (1.0 / target_rotation_speed_in_hours_per_rotation); //TODO handle divide by 0
-                                                                       // #Get the actual rotation state in degrees using the rotation speed of the container, the actual time and a rotational adjustment value
-        let target_rotation_state_in_degrees = (target_rotation_speed_in_degrees_per_second
-            * elapsed_time_in_seconds
-            + target_container.rotation_adjust)
-            % 360.0;
-
-        // Target rotated coordinates (still relative to container center)
-        let target_rotated_coordinates = self
-            .target
-            .coordinates
-            .rotate(target_rotation_state_in_degrees.to_radians());
-
-        // #---------------------------------------------------Distance to target----------------------------------------------------------
-        self.delta_distance = if complete_position.container.name == self.target.container {
-            self.target.coordinates - complete_position.local_coordinates
-        } else {
-            target_rotated_coordinates + target_container.coordinates
-                    // - complete_position.local_coordinates // why this ?
-                    // + complete_position.absolute_coordinates // and why a + ?
-                    - complete_position.absolute_coordinates
-        };
-        self.distance = self.delta_distance.norm();
-
-        // #----------------------------------------------------------Heading--------------------------------------------------------------
-        // If planetary !
-        let bearing_x = self.latitude.to_radians().cos()
-            * (self.longitude.to_radians() - complete_position.longitude.to_radians()).sin();
-        let bearing_y = complete_position.latitude.to_radians().cos()
-            * self.latitude.to_radians().sin()
-            - complete_position.latitude.to_radians().sin()
-                * self.latitude.to_radians().cos()
-                * (self.longitude.to_radians() - complete_position.longitude.to_radians()).cos();
-        self.heading = (bearing_x.atan2(bearing_y).to_degrees() + 360.0) % 360.0;
     }
 }
 
@@ -201,5 +132,83 @@ impl WidgetPoi {
         let mut file = std::fs::File::create("CustomPoi.json").expect("This should work");
         serde_json::to_writer_pretty(&mut file, &custom_pois)
             .expect("Fail to write cutom poi json");
+    }
+}
+
+impl WidgetTargetSelection {
+    pub fn new(targets: HashMap<String, WidgetTarget>) -> Self {
+        Self {
+            targets,
+            ..Default::default()
+        }
+    }
+}
+
+impl WidgetTarget {
+    pub fn new(target: Poi, database: &HashMap<String, Container>) -> Self {
+        Self {
+            open: true,
+            latitude: target.coordinates.latitude(),
+            longitude: target.coordinates.longitude(),
+            altitude: target
+                .coordinates
+                .altitude(database.get(&target.container).unwrap_or_else(|| {
+                    panic!("No Container with that name : \"{}\"", &target.container)
+                })),
+
+            target,
+            ..Default::default()
+        }
+    }
+
+    pub fn update(
+        &mut self,
+        database: &HashMap<String, Container>,
+        elapsed_time_in_seconds: f64,
+        complete_position: &WidgetPosition,
+    ) {
+        let target_container = database.get(&self.target.container).unwrap();
+        // #Grab the rotation speed of the container in the Database and convert it in degrees/s
+        let target_rotation_speed_in_hours_per_rotation = target_container.rotation_speed;
+
+        let target_rotation_speed_in_degrees_per_second =
+            0.1 * (1.0 / target_rotation_speed_in_hours_per_rotation); //TODO handle divide by 0
+                                                                       // #Get the actual rotation state in degrees using the rotation speed of the container, the actual time and a rotational adjustment value
+        let target_rotation_state_in_degrees = (target_rotation_speed_in_degrees_per_second
+            * elapsed_time_in_seconds
+            + target_container.rotation_adjust)
+            % 360.0;
+
+        // Target rotated coordinates (still relative to container center)
+        let target_rotated_coordinates = self
+            .target
+            .coordinates
+            .rotate(target_rotation_state_in_degrees.to_radians());
+
+        // #---------------------------------------------------Distance to target----------------------------------------------------------
+        self.delta_distance = if complete_position.container.name == self.target.container {
+            self.target.coordinates - complete_position.local_coordinates
+        } else {
+            target_rotated_coordinates + target_container.coordinates
+                    // - complete_position.local_coordinates // why this ?
+                    // + complete_position.absolute_coordinates // and why a + ?
+                    - complete_position.absolute_coordinates
+        };
+        self.distance = self.delta_distance.norm();
+
+        // #----------------------------------------------------------Heading--------------------------------------------------------------
+        // If planetary !
+        self.heading = (complete_position
+            .local_coordinates
+            .loxodromie_to(self.target.coordinates)
+            .to_degrees()
+            + 360.0)
+            % 360.0;
+    }
+}
+
+impl WidgetMap {
+    pub fn remove_targets(&mut self, target: &Poi) {
+        self.targets.remove(&target.name);
     }
 }
