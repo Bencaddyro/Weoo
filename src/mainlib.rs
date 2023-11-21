@@ -212,3 +212,4 @@ impl WidgetMap {
         self.targets.remove(&target.name);
     }
 }
+

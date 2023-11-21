@@ -61,10 +61,10 @@ impl MyEguiApp {
         //     .unwrap()
         //     .to_owned();
         let target1 = database
-            .get("Daymar")
+            .get("Yela")
             .unwrap()
             .poi
-            .get("Shubin Mining Facility SCD-1")
+            .get("BennyHenge")
             .unwrap()
             .to_owned();
         let target2 = database
