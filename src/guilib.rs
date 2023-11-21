@@ -1,7 +1,8 @@
 use crate::{
     geolib::Container,
-    mainlib::{WidgetPoi, WidgetPosition, WidgetTarget, WidgetTargetSelection},
+    mainlib::{WidgetMap, WidgetPoi, WidgetPosition, WidgetTarget, WidgetTargetSelection},
 };
+use egui_plot::{Line, Plot, PlotPoints};
 use std::collections::HashMap;
 
 impl WidgetPosition {
@@ -152,5 +153,33 @@ impl WidgetPoi {
                     self.save_current_position();
                 };
             });
+    }
+}
+
+impl WidgetMap {
+    pub fn display(&mut self, ctx: &egui::Context) {
+        egui::Window::new("Map").show(ctx, |ui| {
+
+            // define point based on targets coordiantes
+
+            // plot satelite screen based on coordinates found on lidar
+
+            // TODO : how to scale screen shot ? 1920*1080 = q lat + j long -> mercator deformation :explosion_head:
+
+            // screenshot : head to 0° / pitch 0°
+            //Ou alors plus malin !
+            // On infère le cap courant du screen shot a partir des coordonée ! et on rotate l'image en fonction!
+
+            let sin: PlotPoints = (0..1000)
+                .map(|i| {
+                    let x = i as f64 * 0.01;
+                    [x, x.sin()]
+                })
+                .collect();
+            let line = Line::new(sin);
+            Plot::new("my_plot")
+                .view_aspect(2.0)
+                .show(ui, |plot_ui| plot_ui.line(line));
+        });
     }
 }

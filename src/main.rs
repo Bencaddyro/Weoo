@@ -8,7 +8,7 @@ use crate::{
 use chrono::prelude::*;
 use eframe::egui;
 use geolib::SpaceTimePosition;
-use mainlib::{WidgetPoi, WidgetPosition, WidgetTarget, WidgetTargetSelection};
+use mainlib::{WidgetMap, WidgetPoi, WidgetPosition, WidgetTarget, WidgetTargetSelection};
 use std::collections::HashMap;
 
 mod geolib;
@@ -42,6 +42,7 @@ struct MyEguiApp {
     position: WidgetPosition,
     target_selection: WidgetTargetSelection,
     poi_exporter: WidgetPoi,
+    map: WidgetMap,
 }
 
 impl MyEguiApp {
@@ -148,6 +149,10 @@ impl eframe::App for MyEguiApp {
         self.poi_exporter.update(&self.database, &self.position);
         self.poi_exporter.display(ctx);
 
+        // Display Map
+        self.map.display(ctx);
+
+        // Update DB from added Poi
         self.database = self.poi_exporter.database.clone();
     }
 }
