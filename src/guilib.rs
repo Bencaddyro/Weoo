@@ -130,7 +130,7 @@ impl WidgetTarget {
                     ui.label(format!("{:.3}km", self.distance));
                     ui.end_row();
                     ui.label("Heading:");
-                    ui.label(format!("{:.2}°", self.heading));
+                    ui.label(format!("{:.3}°", self.heading));
                     ui.end_row();
                     // ui.label("Delta:");
                     // ui.label(format!("{:?}", self.delta_distance));

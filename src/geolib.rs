@@ -1,6 +1,7 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::f64::consts::PI;
 use std::ops::{Add, Sub};
 
 #[derive(Default, Copy, Clone, PartialEq)]
@@ -77,6 +78,13 @@ impl Vec3d {
             + container.rotation_adjust)
             % 360.0;
         (*self - container.coordinates).rotate((-rotation_state_in_degrees).to_radians())
+    }
+
+    pub fn loxodromie_to(&self, target: Vec3d) -> f64 {
+        ((target.longitude() - self.longitude())
+            / ((PI / 4.0 - self.latitude() / 2.0).tan().ln()
+                - (PI / 4.0 - target.latitude() / 2.0).tan().ln()))
+        .atan()
     }
 }
 

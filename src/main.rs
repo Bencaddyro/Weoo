@@ -1,3 +1,6 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
+
+
 use crate::{
     geolib::Container,
     iolib::{get_space_time_position, load_database},
@@ -14,10 +17,14 @@ mod iolib;
 mod mainlib;
 // Coordinates: x:-17068754905.863510 y:-2399480232.5053227 z:-20642.813381
 
+// Somewhere on Daymar
+// Coordinates: x:-18930379393.7 y:-2610297380.75 z:210614.307494
+
+
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
-        "Weeoo Nav Tool",
+        "Weoo Nav Tool",
         native_options,
         Box::new(|cc| Box::new(MyEguiApp::new(cc))),
     )
@@ -46,6 +53,13 @@ impl MyEguiApp {
 
         let database = load_database();
         // Hardcode targets example for Daymar Rally
+        // let target1 = database
+        //     .get("Yela")
+        //     .unwrap()
+        //     .poi
+        //     .get("BennyHenge")
+        //     .unwrap()
+        //     .to_owned();
         let target1 = database
             .get("Yela")
             .unwrap()
@@ -53,35 +67,34 @@ impl MyEguiApp {
             .get("BennyHenge")
             .unwrap()
             .to_owned();
-        // let target1 = database
-        //     .get("Daymar")
-        //     .unwrap()
-        //     .poi
-        //     .get("Shubin Mining Facility SCD-1")
-        //     .unwrap()
-        //     .to_owned();
-        // let target2 = database
-        //     .get("Daymar")
-        //     .unwrap()
-        //     .poi
-        //     .get("Eager Flats Aid Shelter")
-        //     .unwrap()
-        //     .to_owned();
-        // let target3 = database
-        //     .get("Daymar")
-        //     .unwrap()
-        //     .poi
-        //     .get("Kudre Ore")
-        //     .unwrap()
-        //     .to_owned();
+        let target2 = database
+            .get("Daymar")
+            .unwrap()
+            .poi
+            .get("Eager Flats Aid Shelter")
+            .unwrap()
+            .to_owned();
+        let target3 = database
+            .get("Daymar")
+            .unwrap()
+            .poi
+            .get("Kudre Ore")
+            .unwrap()
+            .to_owned();
 
         let mut targets = HashMap::new();
         targets.insert(
             format!("{} - {}", target1.container, target1.name),
             WidgetTarget::new(target1, &database),
         );
-        // targets.insert(format!("{} - {}",target1.container, target1.name), WidgetTarget::new(target2, &database));
-        // targets.insert(format!("{} - {}",target1.container, target1.name), WidgetTarget::new(target3, &database));
+        targets.insert(
+            format!("{} - {}", target2.container, target2.name),
+            WidgetTarget::new(target2, &database),
+        );
+        targets.insert(
+            format!("{} - {}", target3.container, target3.name),
+            WidgetTarget::new(target3, &database),
+        );
 
         MyEguiApp {
             database,

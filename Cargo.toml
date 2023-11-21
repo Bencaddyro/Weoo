@@ -14,3 +14,11 @@ regex = "1.10.2"
 chrono = "0.4.31"
 egui = "0.23.0"
 eframe = "0.23.0"
+egui_plot = "0.23.0"
+
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+opt-level = 3
+
