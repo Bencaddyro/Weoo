@@ -43,7 +43,9 @@ pub struct WidgetTarget {
 #[derive(Default)]
 pub struct WidgetMap {
     pub open: bool,
-    pub targets: HashMap<String, Poi>,
+    pub targets: HashMap<String, [f64; 2]>,
+    pub target_container: Container,
+    pub target_poi: Poi,
 }
 
 impl WidgetPosition {
@@ -208,8 +210,60 @@ impl WidgetTarget {
 }
 
 impl WidgetMap {
+    pub fn new(database: &HashMap<String, Container>) -> Self {
+        let target1 = database
+            .get("Daymar")
+            .unwrap()
+            .poi
+            .get("Shubin Mining Facility SCD-1")
+            .unwrap()
+            .to_owned();
+        let target2 = database
+            .get("Daymar")
+            .unwrap()
+            .poi
+            .get("Eager Flats Aid Shelter")
+            .unwrap()
+            .to_owned();
+        let target3 = database
+            .get("Daymar")
+            .unwrap()
+            .poi
+            .get("Kudre Ore")
+            .unwrap()
+            .to_owned();
+
+        let mut targets = HashMap::new();
+        targets.insert(
+            target1.name,
+            [
+                target1.coordinates.longitude(),
+                target1.coordinates.latitude(),
+            ],
+        );
+        targets.insert(
+            target2.name,
+            [
+                target2.coordinates.longitude(),
+                target2.coordinates.latitude(),
+            ],
+        );
+        targets.insert(
+            target3.name,
+            [
+                target3.coordinates.longitude(),
+                target3.coordinates.latitude(),
+            ],
+        );
+
+        Self {
+            target_container: database.get("Daymar").unwrap().clone(),
+            targets,
+            ..Default::default()
+        }
+    }
+
     pub fn remove_targets(&mut self, target: &Poi) {
         self.targets.remove(&target.name);
     }
 }
-

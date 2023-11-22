@@ -9,6 +9,6 @@ This tool aim to provide a reliable navigation tool to find, save, import, expor
 Right now the focus is primarly on planetary navigation fo the upcoming 2024 Daymar Rally
 
 TODO:
-- display map on planetary mode
 - calculate current heading based on last 2 points
 - get path correction based on current heading & target heading
+- manage history

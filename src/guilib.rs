@@ -1,7 +1,9 @@
 use crate::{
     geolib::Container,
-    mainlib::{WidgetPoi, WidgetPosition, WidgetTarget, WidgetTargetSelection},
+    mainlib::{WidgetMap, WidgetPoi, WidgetPosition, WidgetTarget, WidgetTargetSelection},
 };
+use egui::{Align, Layout};
+use egui_plot::{Plot, Points};
 use std::collections::HashMap;
 
 impl WidgetPosition {
@@ -152,5 +154,119 @@ impl WidgetPoi {
                     self.save_current_position();
                 };
             });
+    }
+}
+
+impl WidgetMap {
+    pub fn display(
+        &mut self,
+        ctx: &egui::Context,
+        database: &HashMap<String, Container>,
+        position: &WidgetPosition,
+    ) {
+        egui::Window::new("Map").show(ctx, |ui| {
+            ui.label("Select Target");
+
+            egui::Grid::new("MainGrid").show(ui, |ui| {
+                egui::ComboBox::from_label("Container")
+                    .selected_text(self.target_container.name.clone())
+                    .show_ui(ui, |ui| {
+                        for container in database.values() {
+                            ui.selectable_value(
+                                &mut self.target_container,
+                                container.clone(),
+                                container.name.clone(),
+                            );
+                        }
+                    });
+
+                egui::ComboBox::from_label("Poi")
+                    .selected_text(self.target_poi.name.clone())
+                    .show_ui(ui, |ui| {
+                        for poi in database
+                            .get(&self.target_container.name)
+                            .unwrap()
+                            .poi
+                            .values()
+                        {
+                            ui.selectable_value(
+                                &mut self.target_poi,
+                                poi.clone(),
+                                poi.name.clone(),
+                            );
+                        }
+                    });
+
+                if ui.button("Add Target").clicked()
+                    & database.contains_key(&self.target_poi.container)
+                {
+                    self.targets.insert(
+                        self.target_poi.name.clone(),
+                                        [
+                                            self.target_poi.coordinates.longitude(),
+                                        self.target_poi.coordinates.latitude(),
+                                         ],
+                                        );
+                };
+
+                ui.end_row();
+            });
+            ui.separator();
+            ui.heading("Map");
+
+            ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+
+
+
+               ui.vertical(|ui| {
+
+                   for name in self.targets.keys() {
+                                       ui.label(name);
+
+                }
+               });
+
+
+            // Trace of different points based on history module ?
+
+            // plot satelite screen based on coordinates found on lidar
+
+            // TODO : how to scale screen shot ? 1920*1080 = q lat + j long -> mercator deformation :explosion_head:
+
+            // screenshot : head to 0° / pitch 0°
+            // Clever way : get current heading by diff position betweenscreenshot
+
+            Plot::new("my_plot")
+                // .view_aspect(2.0)
+                // .data_aspect(2.0)
+                .include_x(-180.0)
+                .include_x(180.0)
+                .include_y(90.0)
+                .include_y(-90.0)
+                .label_formatter(|name, value| {
+                    let latitude_degrees = value.y.trunc();
+                    let latitude_minutes = (value.y.fract() * 60.0).trunc().abs();
+                    let latitude_seconds = ((value.y.fract() * 60.0).fract() * 60.0).trunc().abs();
+                    let longitude_degrees = value.x.trunc();
+                    let longitude_minutes = (value.x.fract() * 60.0).trunc().abs();
+                    let longitude_seconds = ((value.x.fract() * 60.0).fract() * 60.0).trunc().abs();
+                    if !name.is_empty() {
+                        format!("{name}\n{latitude_degrees}° {latitude_minutes}’ {latitude_seconds}”\n{longitude_degrees}° {longitude_minutes}’ {longitude_seconds}”")
+                    } else {
+                        "".to_owned()
+                    }
+                })
+                .show(ui, |plot_ui| {
+                    for (name,p) in self.targets.iter() {
+                        // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
+                        let c = [p[0],p[1]];
+                        plot_ui.points(Points::new(c).name(name));
+                    }
+                    plot_ui.points(Points::new([position.local_coordinates.longitude(),position.local_coordinates.latitude()]).name("Position"));
+
+
+                });
+            });
+        });
     }
 }
