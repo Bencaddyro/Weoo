@@ -158,7 +158,12 @@ impl WidgetPoi {
 }
 
 impl WidgetMap {
-    pub fn display(&mut self, ctx: &egui::Context, database: &HashMap<String, Container>) {
+    pub fn display(
+        &mut self,
+        ctx: &egui::Context,
+        database: &HashMap<String, Container>,
+        position: &WidgetPosition,
+    ) {
         egui::Window::new("Map").show(ctx, |ui| {
             ui.label("Select Target");
 
@@ -197,11 +202,11 @@ impl WidgetMap {
                 {
                     self.targets.insert(
                         self.target_poi.name.clone(),
-                        [
-                            self.target_poi.coordinates.latitude(),
-                            self.target_poi.coordinates.longitude(),
-                        ],
-                    );
+                                        [
+                                            self.target_poi.coordinates.longitude(),
+                                        self.target_poi.coordinates.latitude(),
+                                         ],
+                                        );
                 };
 
                 ui.end_row();
@@ -221,31 +226,30 @@ impl WidgetMap {
                 }
                });
 
-            // Point based on current coordiantes
-            // TODO
 
             // Trace of different points based on history module ?
-
-
 
             // plot satelite screen based on coordinates found on lidar
 
             // TODO : how to scale screen shot ? 1920*1080 = q lat + j long -> mercator deformation :explosion_head:
 
             // screenshot : head to 0° / pitch 0°
-            //Ou alors plus malin !
-            // On infère le cap courant du screen shot a partir des coordonée ! et on rotate l'image en fonction!
+            // Clever way : get current heading by diff position betweenscreenshot
 
             Plot::new("my_plot")
-                .view_aspect(1.0)
-                .data_aspect(2.0)
+                // .view_aspect(2.0)
+                // .data_aspect(2.0)
+                .include_x(-180.0)
+                .include_x(180.0)
+                .include_y(90.0)
+                .include_y(-90.0)
                 .label_formatter(|name, value| {
-                    let latitude_degrees = value.x.trunc();
-                    let latitude_minutes = (value.x.fract() * 60.0).trunc().abs();
-                    let latitude_seconds = ((value.x.fract() * 60.0).fract() * 60.0).trunc().abs();
-                    let longitude_degrees = value.y.trunc();
-                    let longitude_minutes = (value.y.fract() * 60.0).trunc().abs();
-                    let longitude_seconds = ((value.y.fract() * 60.0).fract() * 60.0).trunc().abs();
+                    let latitude_degrees = value.y.trunc();
+                    let latitude_minutes = (value.y.fract() * 60.0).trunc().abs();
+                    let latitude_seconds = ((value.y.fract() * 60.0).fract() * 60.0).trunc().abs();
+                    let longitude_degrees = value.x.trunc();
+                    let longitude_minutes = (value.x.fract() * 60.0).trunc().abs();
+                    let longitude_seconds = ((value.x.fract() * 60.0).fract() * 60.0).trunc().abs();
                     if !name.is_empty() {
                         format!("{name}\n{latitude_degrees}° {latitude_minutes}’ {latitude_seconds}”\n{longitude_degrees}° {longitude_minutes}’ {longitude_seconds}”")
                     } else {
@@ -254,11 +258,15 @@ impl WidgetMap {
                 })
                 .show(ui, |plot_ui| {
                     for (name,p) in self.targets.iter() {
-                        let c = [p[1],p[0]];
+                        // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
+                        let c = [p[0],p[1]];
                         plot_ui.points(Points::new(c).name(name));
                     }
+                    plot_ui.points(Points::new([position.local_coordinates.longitude(),position.local_coordinates.latitude()]).name("Position"));
+
+
                 });
-        });
             });
+        });
     }
 }

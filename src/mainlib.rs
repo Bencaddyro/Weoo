@@ -237,22 +237,22 @@ impl WidgetMap {
         targets.insert(
             target1.name,
             [
-                target1.coordinates.latitude(),
                 target1.coordinates.longitude(),
+                target1.coordinates.latitude(),
             ],
         );
         targets.insert(
             target2.name,
             [
-                target2.coordinates.latitude(),
                 target2.coordinates.longitude(),
+                target2.coordinates.latitude(),
             ],
         );
         targets.insert(
             target3.name,
             [
-                target3.coordinates.latitude(),
                 target3.coordinates.longitude(),
+                target3.coordinates.latitude(),
             ],
         );
 

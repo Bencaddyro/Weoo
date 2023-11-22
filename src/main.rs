@@ -135,7 +135,7 @@ impl eframe::App for MyEguiApp {
         self.poi_exporter.display(ctx);
 
         // Display Map
-        self.map.display(ctx, &self.database);
+        self.map.display(ctx, &self.database, &self.position);
 
         // Update DB from added Poi
         self.database = self.poi_exporter.database.clone();
