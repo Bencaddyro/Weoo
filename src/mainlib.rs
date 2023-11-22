@@ -43,7 +43,9 @@ pub struct WidgetTarget {
 #[derive(Default)]
 pub struct WidgetMap {
     pub open: bool,
-    pub targets: HashMap<String, Poi>,
+    pub targets: HashMap<String, [f64; 2]>,
+    pub target_container: Container,
+    pub target_poi: Poi,
 }
 
 impl WidgetPosition {
@@ -208,9 +210,14 @@ impl WidgetTarget {
 }
 
 impl WidgetMap {
+    pub fn new(database: &HashMap<String, Container>) -> Self {
+        Self {
+            target_container: database.get("Daymar").unwrap().clone(),
+            ..Default::default()
+        }
+    }
+
     pub fn remove_targets(&mut self, target: &Poi) {
         self.targets.remove(&target.name);
     }
 }
-
-

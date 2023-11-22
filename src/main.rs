@@ -1,6 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-
 use crate::{
     geolib::Container,
     iolib::{get_space_time_position, load_database},
@@ -19,7 +18,6 @@ mod mainlib;
 
 // Somewhere on Daymar
 // Coordinates: x:-18930379393.7 y:-2610297380.75 z:210614.307494
-
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
@@ -82,20 +80,6 @@ impl MyEguiApp {
             .get("Kudre Ore")
             .unwrap()
             .to_owned();
-        let target2 = database
-            .get("Daymar")
-            .unwrap()
-            .poi
-            .get("Eager Flats Aid Shelter")
-            .unwrap()
-            .to_owned();
-        let target3 = database
-            .get("Daymar")
-            .unwrap()
-            .poi
-            .get("Kudre Ore")
-            .unwrap()
-            .to_owned();
 
         let mut targets = HashMap::new();
         targets.insert(
@@ -112,6 +96,7 @@ impl MyEguiApp {
         );
 
         MyEguiApp {
+            map: WidgetMap::new(&database),
             database,
             reference_time: Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap(),
             position: WidgetPosition::new(),
@@ -150,7 +135,7 @@ impl eframe::App for MyEguiApp {
         self.poi_exporter.display(ctx);
 
         // Display Map
-        self.map.display(ctx);
+        self.map.display(ctx, &self.database);
 
         // Update DB from added Poi
         self.database = self.poi_exporter.database.clone();
