@@ -211,8 +211,54 @@ impl WidgetTarget {
 
 impl WidgetMap {
     pub fn new(database: &HashMap<String, Container>) -> Self {
+        let target1 = database
+            .get("Daymar")
+            .unwrap()
+            .poi
+            .get("Shubin Mining Facility SCD-1")
+            .unwrap()
+            .to_owned();
+        let target2 = database
+            .get("Daymar")
+            .unwrap()
+            .poi
+            .get("Eager Flats Aid Shelter")
+            .unwrap()
+            .to_owned();
+        let target3 = database
+            .get("Daymar")
+            .unwrap()
+            .poi
+            .get("Kudre Ore")
+            .unwrap()
+            .to_owned();
+
+        let mut targets = HashMap::new();
+        targets.insert(
+            target1.name,
+            [
+                target1.coordinates.latitude(),
+                target1.coordinates.longitude(),
+            ],
+        );
+        targets.insert(
+            target2.name,
+            [
+                target2.coordinates.latitude(),
+                target2.coordinates.longitude(),
+            ],
+        );
+        targets.insert(
+            target3.name,
+            [
+                target3.coordinates.latitude(),
+                target3.coordinates.longitude(),
+            ],
+        );
+
         Self {
             target_container: database.get("Daymar").unwrap().clone(),
+            targets,
             ..Default::default()
         }
     }

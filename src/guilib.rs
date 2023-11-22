@@ -2,8 +2,8 @@ use crate::{
     geolib::Container,
     mainlib::{WidgetMap, WidgetPoi, WidgetPosition, WidgetTarget, WidgetTargetSelection},
 };
-use egui::{Layout, Align};
-use egui_plot::{ Plot,  Points};
+use egui::{Align, Layout};
+use egui_plot::{Plot, Points};
 use std::collections::HashMap;
 
 impl WidgetPosition {
@@ -237,7 +237,8 @@ impl WidgetMap {
             // On infère le cap courant du screen shot a partir des coordonée ! et on rotate l'image en fonction!
 
             Plot::new("my_plot")
-                .view_aspect(2.0)
+                .view_aspect(1.0)
+                .data_aspect(2.0)
                 .label_formatter(|name, value| {
                     let latitude_degrees = value.x.trunc();
                     let latitude_minutes = (value.x.fract() * 60.0).trunc().abs();
@@ -253,7 +254,8 @@ impl WidgetMap {
                 })
                 .show(ui, |plot_ui| {
                     for (name,p) in self.targets.iter() {
-                        plot_ui.points(Points::new(p.clone()).name(name));
+                        let c = [p[1],p[0]];
+                        plot_ui.points(Points::new(c).name(name));
                     }
                 });
         });
