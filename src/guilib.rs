@@ -4,7 +4,16 @@ use crate::{
 };
 use egui::{Align, Layout};
 use egui_plot::{Plot, Points};
-use std::collections::HashMap;
+use std::{collections::HashMap, f64::consts::PI};
+
+pub fn pretty(a: f64) -> String {
+    let degrees = a.to_degrees().trunc();
+    let minutes = (a.to_degrees().fract() * 60.0).trunc().abs();
+    let seconds = ((a.to_degrees().fract() * 60.0).fract() * 60.0)
+        .trunc()
+        .abs();
+    format!("{degrees}° {minutes}’ {seconds}”")
+}
 
 impl WidgetPosition {
     pub fn display(&mut self, ctx: &egui::Context) {
@@ -31,10 +40,10 @@ impl WidgetPosition {
                     ui.end_row();
 
                     ui.label("Latitute:");
-                    ui.label(format!("{:.2}°", self.latitude));
+                    ui.label(pretty(self.latitude));
                     ui.end_row();
                     ui.label("Longitude:");
-                    ui.label(format!("{:.2}°", self.longitude));
+                    ui.label(pretty(self.longitude));
                     ui.end_row();
                     ui.label("Altitude:");
                     ui.label(format!("{:.3}km", self.altitude));
@@ -120,10 +129,10 @@ impl WidgetTarget {
             .show(ctx, |ui| {
                 egui::Grid::new("MainGrid").show(ui, |ui| {
                     ui.label("Latitute:");
-                    ui.label(format!("{:.2}°", self.latitude));
+                    ui.label(pretty(self.latitude));
                     ui.end_row();
                     ui.label("Longitude:");
-                    ui.label(format!("{:.2}°", self.longitude));
+                    ui.label(pretty(self.longitude));
                     ui.end_row();
                     ui.label("Altitude:");
                     ui.label(format!("{:.3}km", self.altitude));
@@ -132,7 +141,7 @@ impl WidgetTarget {
                     ui.label(format!("{:.3}km", self.distance));
                     ui.end_row();
                     ui.label("Heading:");
-                    ui.label(format!("{:.3}°", self.heading));
+                    ui.label(pretty(self.heading));
                     ui.end_row();
                     // ui.label("Delta:");
                     // ui.label(format!("{:?}", self.delta_distance));
@@ -239,19 +248,13 @@ impl WidgetMap {
             Plot::new("my_plot")
                 // .view_aspect(2.0)
                 // .data_aspect(2.0)
-                .include_x(-180.0)
-                .include_x(180.0)
-                .include_y(90.0)
-                .include_y(-90.0)
+                .include_x(-PI)
+                .include_x(PI)
+                .include_y(PI / 2.0)
+                .include_y(-PI / 2.0)
                 .label_formatter(|name, value| {
-                    let latitude_degrees = value.y.trunc();
-                    let latitude_minutes = (value.y.fract() * 60.0).trunc().abs();
-                    let latitude_seconds = ((value.y.fract() * 60.0).fract() * 60.0).trunc().abs();
-                    let longitude_degrees = value.x.trunc();
-                    let longitude_minutes = (value.x.fract() * 60.0).trunc().abs();
-                    let longitude_seconds = ((value.x.fract() * 60.0).fract() * 60.0).trunc().abs();
                     if !name.is_empty() {
-                        format!("{name}\n{latitude_degrees}° {latitude_minutes}’ {latitude_seconds}”\n{longitude_degrees}° {longitude_minutes}’ {longitude_seconds}”")
+                        format!("{name}\n{}\n{}", pretty(value.x),pretty(value.y))
                     } else {
                         "".to_owned()
                     }

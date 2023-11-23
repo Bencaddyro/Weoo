@@ -1,4 +1,5 @@
 use crate::geolib::{get_current_container, Container, Poi, SpaceTimePosition, Vec3d};
+use std::f64::consts::PI;
 use std::{collections::HashMap, f64::NAN, fs};
 
 #[derive(Clone, Default)]
@@ -203,9 +204,8 @@ impl WidgetTarget {
         self.heading = (complete_position
             .local_coordinates
             .loxodromie_to(self.target.coordinates)
-            .to_degrees()
-            + 360.0)
-            % 360.0;
+            + 2.0 * PI)
+            % (2.0 * PI);
     }
 }
 

@@ -63,10 +63,10 @@ impl Vec3d {
         )
     }
     pub fn latitude(&self) -> f64 {
-        (self.z / self.norm()).asin().to_degrees()
+        (self.z / self.norm()).asin()
     }
     pub fn longitude(&self) -> f64 {
-        self.x.atan2(self.y).to_degrees() * -1.0
+        self.x.atan2(self.y) * -1.0
     }
     pub fn altitude(&self, container: &Container) -> f64 {
         self.norm() - container.radius_body
