@@ -44,9 +44,12 @@ pub struct WidgetTarget {
 #[derive(Default)]
 pub struct WidgetMap {
     pub open: bool,
-    pub targets: HashMap<String, [f64; 2]>,
+    pub targets: Vec<(String, [f64; 2])>,
     pub target_container: Container,
     pub target_poi: Poi,
+    pub travel: Vec<(String, [f64; 2])>,
+    pub eviction: Vec<usize>,
+    pub eviction_self: Vec<usize>,
 }
 
 impl WidgetPosition {
@@ -233,27 +236,27 @@ impl WidgetMap {
             .unwrap()
             .to_owned();
 
-        let mut targets = HashMap::new();
-        targets.insert(
+        let mut targets = Vec::new();
+        targets.push((
             target1.name,
             [
                 target1.coordinates.longitude(),
                 target1.coordinates.latitude(),
-            ],
+            ])
         );
-        targets.insert(
+        targets.push((
             target2.name,
             [
                 target2.coordinates.longitude(),
                 target2.coordinates.latitude(),
-            ],
+            ])
         );
-        targets.insert(
+        targets.push((
             target3.name,
             [
                 target3.coordinates.longitude(),
                 target3.coordinates.latitude(),
-            ],
+            ])
         );
 
         Self {
@@ -263,7 +266,27 @@ impl WidgetMap {
         }
     }
 
-    pub fn remove_targets(&mut self, target: &Poi) {
-        self.targets.remove(&target.name);
+    pub fn update(&mut self) {
+        for i in &self.eviction_self {
+            self.travel.remove(i.to_owned());
+        }
+        self.eviction_self = Vec::new();
+
+        for i in &self.eviction {
+            self.targets.remove(i.to_owned());
+        }
+        self.eviction = Vec::new();
+    }
+
+    pub fn new_position(&mut self, position: &WidgetPosition){
+        let pos = [position.local_coordinates.longitude(), position.local_coordinates.latitude()];
+        let i;
+        if self.travel.is_empty() {
+            i = 0;
+        } else {
+            i = self.travel.len();
+        }
+
+        self.travel.push(((i+1).to_string(),pos));
     }
 }

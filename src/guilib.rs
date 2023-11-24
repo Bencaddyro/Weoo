@@ -209,13 +209,13 @@ impl WidgetMap {
                 if ui.button("Add Target").clicked()
                     & database.contains_key(&self.target_poi.container)
                 {
-                    self.targets.insert(
+                    self.targets.push((
                         self.target_poi.name.clone(),
                                         [
                                             self.target_poi.coordinates.longitude(),
                                         self.target_poi.coordinates.latitude(),
                                          ],
-                                        );
+                                        ));
                 };
 
                 ui.end_row();
@@ -224,16 +224,32 @@ impl WidgetMap {
             ui.heading("Map");
 
             ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
+                ui.vertical(|ui| {
+                    ui.heading("Targets");
 
+                    for (i,(name,_)) in self.targets.iter().enumerate() {
+                        ui.horizontal(|ui| {
 
+                            if ui.button("❌").clicked() { self.eviction.push(i) };
+                            // if ui.button("⏶").clicked() { };
+                            // if ui.button("⏷").clicked() { };
 
-               ui.vertical(|ui| {
+                            ui.label(name);
+                        });
+                    }
+                    ui.heading("Self");
+                    for (i,(name,_)) in self.travel.iter().enumerate() {
+                        ui.horizontal(|ui| {
 
-                   for name in self.targets.keys() {
-                                       ui.label(name);
+                            if ui.button("❌").clicked() { self.eviction_self.push(i) };
+                            // if ui.button("⏶").clicked() { };
+                            // if ui.button("⏷").clicked() { };
 
-                }
-               });
+                            ui.label(name);
+                        });
+                    }
+
+                });
 
 
             // Trace of different points based on history module ?
@@ -263,9 +279,15 @@ impl WidgetMap {
                     for (name,p) in self.targets.iter() {
                         // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
                         let c = [p[0],p[1]];
-                        plot_ui.points(Points::new(c).name(name));
+                        plot_ui.points(Points::new(c).name(name).radius(3.0));
                     }
-                    plot_ui.points(Points::new([position.local_coordinates.longitude(),position.local_coordinates.latitude()]).name("Position"));
+                    for (name,p) in self.travel.iter() {
+                        // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
+                        let c = [p[0],p[1]];
+                        plot_ui.points(Points::new(c).name(name).radius(3.0));
+                    }
+
+                    // plot_ui.points(Points::new([position.local_coordinates.longitude(),position.local_coordinates.latitude()]).name("Position"));
 
 
                 });

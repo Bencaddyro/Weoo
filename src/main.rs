@@ -121,6 +121,8 @@ impl eframe::App for MyEguiApp {
 
             self.position
                 .update(&self.space_time_position, &self.database, self.time_elapsed);
+
+            self.map.new_position(&self.position);
         }
 
         // Display self position
@@ -135,6 +137,7 @@ impl eframe::App for MyEguiApp {
         self.poi_exporter.display(ctx);
 
         // Display Map
+        self.map.update();
         self.map.display(ctx, &self.database, &self.position);
 
         // Update DB from added Poi
