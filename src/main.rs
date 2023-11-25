@@ -23,7 +23,6 @@ mod mainlib;
 // Coordinates: x:-18930679393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930779393.98 y:-2610297380.75 z:210614.307494
 
-
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
     eframe::run_native(
@@ -38,7 +37,6 @@ struct MyEguiApp {
     database: HashMap<String, Container>,
     reference_time: DateTime<Utc>,
     // time_elapsed: f64,
-
     space_time_position_new: SpaceTimePosition,
     space_time_position: SpaceTimePosition,
 
@@ -122,7 +120,10 @@ impl eframe::App for MyEguiApp {
 
             self.position.new_coordinate(&self.space_time_position);
             self.position.update(&self.database, self.reference_time);
-            self.map.new_position((self.position.index +1).to_string(), &self.position.local_coordinates);
+            self.map.new_position(
+                (self.position.index + 1).to_string(),
+                &self.position.local_coordinates,
+            );
         }
 
         // Display self position
@@ -136,8 +137,6 @@ impl eframe::App for MyEguiApp {
         // Display Map
         self.map.update();
         self.map.display(ctx, &self.database);
-
-
 
         // Update DB from added Poi
         self.database = self.position.database.clone();

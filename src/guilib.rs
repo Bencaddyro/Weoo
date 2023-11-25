@@ -2,8 +2,8 @@ use crate::{
     geolib::Container,
     mainlib::{WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection},
 };
-use egui::{Align, Layout, Color32, Vec2, Pos2};
-use egui_plot::{Plot, Points, Line};
+use egui::{Align, Color32, Layout, Pos2};
+use egui_plot::{Line, Plot, Points};
 use std::{collections::HashMap, f64::consts::PI};
 
 pub fn pretty(a: f64) -> String {
@@ -52,23 +52,22 @@ impl WidgetPosition {
 
                 ui.add(egui::Separator::default().vertical());
                 ui.horizontal(|ui| {
-
                     if ui.button("⏴").clicked() & (self.index > 0) {
                         self.index -= 1;
                     };
-                    if ui.button("⏵").clicked() & !self.position_history.is_empty() & (self.index+1 < self.position_history.len()) {
-                        self.index +=1;
+                    if ui.button("⏵").clicked()
+                        & !self.position_history.is_empty()
+                        & (self.index + 1 < self.position_history.len())
+                    {
+                        self.index += 1;
                     };
-                    ui.heading(format!("{}",self.index+1));
+                    ui.heading(format!("{}", self.index + 1));
 
                     ui.add(egui::TextEdit::singleline(&mut self.name).hint_text("Custom Poi"));
 
                     if ui.button("Save").clicked() {
                         self.save_current_position();
                     };
-
-
-
                 });
                 ui.end_row();
             });
@@ -103,20 +102,20 @@ impl WidgetTargetSelection {
                 egui::ComboBox::from_label("Poi")
                     .selected_text(self.target_poi.name.clone())
                     .show_ui(ui, |ui| {
-
                         if database.contains_key(&self.target_container.name) {
-                        for poi in database
-                            .get(&self.target_container.name)
-                            .unwrap()
-                            .poi
-                            .values()
-                        {
-                            ui.selectable_value(
-                                &mut self.target_poi,
-                                poi.clone(),
-                                poi.name.clone(),
-                            );
-                        }}
+                            for poi in database
+                                .get(&self.target_container.name)
+                                .unwrap()
+                                .poi
+                                .values()
+                            {
+                                ui.selectable_value(
+                                    &mut self.target_poi,
+                                    poi.clone(),
+                                    poi.name.clone(),
+                                );
+                            }
+                        }
                     });
 
                 if ui.button("Add Target").clicked()
@@ -145,7 +144,7 @@ impl WidgetTargetSelection {
 impl WidgetTarget {
     pub fn display(&mut self, ctx: &egui::Context) {
         egui::Window::new(format!("{} - {}", self.target.container, self.target.name))
-            .default_pos(Pos2::new(400.0,800.0))
+            .default_pos(Pos2::new(400.0, 800.0))
             .open(&mut self.open)
             .show(ctx, |ui| {
                 egui::Grid::new("MainGrid").show(ui, |ui| {
@@ -217,11 +216,11 @@ impl WidgetMap {
                 {
                     self.targets.push((
                         self.target_poi.name.clone(),
-                                        [
-                                            self.target_poi.coordinates.longitude(),
-                                        self.target_poi.coordinates.latitude(),
-                                         ],
-                                        ));
+                        [
+                            self.target_poi.coordinates.longitude(),
+                            self.target_poi.coordinates.latitude(),
+                        ],
+                    ));
                 };
 
                 ui.end_row();
@@ -233,10 +232,11 @@ impl WidgetMap {
                 ui.vertical(|ui| {
                     ui.heading("Targets");
 
-                    for (i,(name,_)) in self.targets.iter().enumerate() {
+                    for (i, (name, _)) in self.targets.iter().enumerate() {
                         ui.horizontal(|ui| {
-
-                            if ui.button("❌").clicked() { self.eviction.push(i) };
+                            if ui.button("❌").clicked() {
+                                self.eviction.push(i)
+                            };
                             // if ui.button("⏶").clicked() { };
                             // if ui.button("⏷").clicked() { };
 
@@ -244,65 +244,72 @@ impl WidgetMap {
                         });
                     }
                     ui.heading("Self");
-                    for (i,(name,_)) in self.travel.iter().enumerate() {
+                    for (i, (name, _)) in self.travel.iter().enumerate() {
                         ui.horizontal(|ui| {
-
-                            if ui.button("❌").clicked() { self.eviction_self.push(i) };
+                            if ui.button("❌").clicked() {
+                                self.eviction_self.push(i)
+                            };
                             // if ui.button("⏶").clicked() { };
                             // if ui.button("⏷").clicked() { };
 
                             ui.label(name);
                         });
                     }
-
                 });
 
+                // Trace of different points based on history module ?
 
-            // Trace of different points based on history module ?
+                // plot satelite screen based on coordinates found on lidar
 
-            // plot satelite screen based on coordinates found on lidar
+                // TODO : how to scale screen shot ? 1920*1080 = q lat + j long -> mercator deformation :explosion_head:
 
-            // TODO : how to scale screen shot ? 1920*1080 = q lat + j long -> mercator deformation :explosion_head:
+                // screenshot : head to 0° / pitch 0°
+                // Clever way : get current heading by diff position betweenscreenshot
 
-            // screenshot : head to 0° / pitch 0°
-            // Clever way : get current heading by diff position betweenscreenshot
+                Plot::new("my_plot")
+                    // .min_size(Vec2::new(800.0,500.0))
+                    // .view_aspect(2.0)
+                    // .data_aspect(2.0)
+                    .include_x(-PI)
+                    .include_x(PI)
+                    .include_y(PI / 2.0)
+                    .include_y(-PI / 2.0)
+                    .label_formatter(|name, value| {
+                        if !name.is_empty() {
+                            format!("{name}\n{}\n{}", pretty(value.y), pretty(value.x))
+                        } else {
+                            "".to_owned()
+                        }
+                    })
+                    .show(ui, |plot_ui| {
+                        for (name, p) in self.targets.iter() {
+                            // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
+                            let c = [p[0], p[1]];
+                            plot_ui.points(Points::new(c).name(name).radius(3.0));
+                        }
+                        let mut path = Vec::new();
 
-            Plot::new("my_plot")
-                // .min_size(Vec2::new(800.0,500.0))
-                // .view_aspect(2.0)
-                // .data_aspect(2.0)
-                .include_x(-PI)
-                .include_x(PI)
-                .include_y(PI / 2.0)
-                .include_y(-PI / 2.0)
-                .label_formatter(|name, value| {
-                    if !name.is_empty() {
-                        format!("{name}\n{}\n{}", pretty(value.y),pretty(value.x))
-                    } else {
-                        "".to_owned()
-                    }
-                })
-                .show(ui, |plot_ui| {
-                    for (name,p) in self.targets.iter() {
-                        // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
-                        let c = [p[0],p[1]];
-                        plot_ui.points(Points::new(c).name(name).radius(3.0));
-                    }
-                    let mut path = Vec::new();
+                        for (name, p) in self.travel.iter() {
+                            // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
+                            let c = [p[0], p[1]];
+                            path.push(c);
+                            plot_ui.points(
+                                Points::new(c)
+                                    .name(name)
+                                    .radius(3.0)
+                                    .color(Color32::DARK_GRAY),
+                            );
+                        }
 
-                    for (name,p) in self.travel.iter() {
-                        // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
-                        let c = [p[0],p[1]];
-                        path.push(c);
-                        plot_ui.points(Points::new(c).name(name).radius(3.0).color(Color32::DARK_GRAY));
-                    }
+                        plot_ui.line(
+                            Line::new(path)
+                                .name("Self")
+                                .width(1.5)
+                                .color(Color32::DARK_GRAY),
+                        );
 
-                    plot_ui.line(Line::new(path).name("Self").width(1.5).color(Color32::DARK_GRAY));
-
-                    // plot_ui.points(Points::new([position.local_coordinates.longitude(),position.local_coordinates.latitude()]).name("Position"));
-
-
-                });
+                        // plot_ui.points(Points::new([position.local_coordinates.longitude(),position.local_coordinates.latitude()]).name("Position"));
+                    });
             });
         });
     }

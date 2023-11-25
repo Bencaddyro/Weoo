@@ -75,14 +75,14 @@ impl WidgetPosition {
         self.database = database.clone();
 
         // self.space_time_position = *space_time_position;
-        if self.position_history.is_empty() { return };
+        if self.position_history.is_empty() {
+            return;
+        };
 
         self.timestamp = self.position_history[self.index].timestamp;
 
-        self.time_elapsed = (self.timestamp - reference_time)
-            .num_nanoseconds()
-            .unwrap() as f64
-            / 1e9;
+        self.time_elapsed =
+            (self.timestamp - reference_time).num_nanoseconds().unwrap() as f64 / 1e9;
         self.absolute_coordinates = self.position_history[self.index].coordinates;
         self.container = get_current_container(&self.absolute_coordinates, database);
 
@@ -101,10 +101,9 @@ impl WidgetPosition {
         }
     }
 
-
     pub fn new_coordinate(&mut self, space_time_position: &SpaceTimePosition) {
-        self.position_history.push(space_time_position.clone());
-        self.index = self.position_history.len()-1;
+        self.position_history.push(*space_time_position);
+        self.index = self.position_history.len() - 1;
     }
 
     pub fn save_current_position(&mut self) {
@@ -122,9 +121,7 @@ impl WidgetPosition {
             println!("Poi already exist, default override")
         }
 
-        let new_poi = if (self.container.name == "Space")
-            | (self.container.name.is_empty())
-        {
+        let new_poi = if (self.container.name == "Space") | (self.container.name.is_empty()) {
             Poi {
                 name: self.name.clone(),
                 container: "Space".to_string(),
@@ -157,8 +154,6 @@ impl WidgetPosition {
             .expect("Fail to write cutom poi json");
     }
 }
-
-
 
 impl WidgetTargetSelection {
     pub fn new(targets: HashMap<String, WidgetTarget>) -> Self {
@@ -255,28 +250,29 @@ impl WidgetMap {
             .unwrap()
             .to_owned();
 
-        let mut targets = Vec::new();
-        targets.push((
-            target1.name,
-            [
-                target1.coordinates.longitude(),
-                target1.coordinates.latitude(),
-            ])
-        );
-        targets.push((
-            target2.name,
-            [
-                target2.coordinates.longitude(),
-                target2.coordinates.latitude(),
-            ])
-        );
-        targets.push((
-            target3.name,
-            [
-                target3.coordinates.longitude(),
-                target3.coordinates.latitude(),
-            ])
-        );
+        let targets = vec![
+            (
+                target1.name,
+                [
+                    target1.coordinates.longitude(),
+                    target1.coordinates.latitude(),
+                ],
+            ),
+            (
+                target2.name,
+                [
+                    target2.coordinates.longitude(),
+                    target2.coordinates.latitude(),
+                ],
+            ),
+            (
+                target3.name,
+                [
+                    target3.coordinates.longitude(),
+                    target3.coordinates.latitude(),
+                ],
+            ),
+        ];
 
         Self {
             target_container: database.get("Daymar").unwrap().clone(),
@@ -297,8 +293,8 @@ impl WidgetMap {
         self.eviction = Vec::new();
     }
 
-    pub fn new_position(&mut self, name: String, position: &Vec3d){
+    pub fn new_position(&mut self, name: String, position: &Vec3d) {
         let pos = [position.longitude(), position.latitude()];
-        self.travel.push((name,pos));
+        self.travel.push((name, pos));
     }
 }
