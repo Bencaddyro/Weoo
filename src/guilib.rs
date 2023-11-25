@@ -1,9 +1,9 @@
 use crate::{
     geolib::Container,
-    mainlib::{WidgetMap, WidgetPoi, WidgetPosition, WidgetTarget, WidgetTargetSelection},
+    mainlib::{WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection},
 };
-use egui::{Align, Layout};
-use egui_plot::{Plot, Points};
+use egui::{Align, Layout, Color32, Vec2, Pos2};
+use egui_plot::{Plot, Points, Line};
 use std::{collections::HashMap, f64::consts::PI};
 
 pub fn pretty(a: f64) -> String {
@@ -25,14 +25,14 @@ impl WidgetPosition {
                     ui.end_row();
 
                     ui.label("Timestamp:");
-                    ui.label(format!("{}", self.space_time_position.timestamp));
+                    ui.label(format!("{}", self.timestamp));
                     ui.end_row();
                     ui.label("Coordinates:");
                     ui.label(format!(
                         "x:{} y:{} z:{}",
-                        self.space_time_position.coordinates.x,
-                        self.space_time_position.coordinates.y,
-                        self.space_time_position.coordinates.z
+                        self.absolute_coordinates.x,
+                        self.absolute_coordinates.y,
+                        self.absolute_coordinates.z
                     ));
                     ui.end_row();
                     ui.label("Container:");
@@ -51,7 +51,25 @@ impl WidgetPosition {
                 });
 
                 ui.add(egui::Separator::default().vertical());
+                ui.horizontal(|ui| {
 
+                    if ui.button("⏴").clicked() & (self.index > 0) {
+                        self.index -= 1;
+                    };
+                    if ui.button("⏵").clicked() & !self.position_history.is_empty() & (self.index+1 < self.position_history.len()) {
+                        self.index +=1;
+                    };
+                    ui.heading(format!("{}",self.index+1));
+
+                    ui.add(egui::TextEdit::singleline(&mut self.name).hint_text("Custom Poi"));
+
+                    if ui.button("Save").clicked() {
+                        self.save_current_position();
+                    };
+
+
+
+                });
                 ui.end_row();
             });
         });
@@ -63,7 +81,7 @@ impl WidgetTargetSelection {
         &mut self,
         ctx: &egui::Context,
         database: &HashMap<String, Container>,
-        elapsed_time: f64,
+        // elapsed_time: f64,
         position: &WidgetPosition,
     ) {
         egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
@@ -85,6 +103,8 @@ impl WidgetTargetSelection {
                 egui::ComboBox::from_label("Poi")
                     .selected_text(self.target_poi.name.clone())
                     .show_ui(ui, |ui| {
+
+                        if database.contains_key(&self.target_container.name) {
                         for poi in database
                             .get(&self.target_container.name)
                             .unwrap()
@@ -96,7 +116,7 @@ impl WidgetTargetSelection {
                                 poi.clone(),
                                 poi.name.clone(),
                             );
-                        }
+                        }}
                     });
 
                 if ui.button("Add Target").clicked()
@@ -116,7 +136,7 @@ impl WidgetTargetSelection {
         self.targets.retain(|_, v| v.open);
         // Display targets windows
         for target in &mut self.targets.values_mut() {
-            target.update(database, elapsed_time, position);
+            target.update(database, position);
             target.display(ctx);
         }
     }
@@ -125,6 +145,7 @@ impl WidgetTargetSelection {
 impl WidgetTarget {
     pub fn display(&mut self, ctx: &egui::Context) {
         egui::Window::new(format!("{} - {}", self.target.container, self.target.name))
+            .default_pos(Pos2::new(400.0,800.0))
             .open(&mut self.open)
             .show(ctx, |ui| {
                 egui::Grid::new("MainGrid").show(ui, |ui| {
@@ -151,29 +172,14 @@ impl WidgetTarget {
     }
 }
 
-impl WidgetPoi {
-    pub fn display(&mut self, ctx: &egui::Context) {
-        egui::Window::new("Save Poi")
-            // .open(&mut self.open)
-            .show(ctx, |ui| {
-                ui.label("Name:");
-
-                ui.add(egui::TextEdit::singleline(&mut self.name).hint_text("Custom Poi"));
-                if ui.button("Save").clicked() {
-                    self.save_current_position();
-                };
-            });
-    }
-}
-
 impl WidgetMap {
     pub fn display(
         &mut self,
         ctx: &egui::Context,
         database: &HashMap<String, Container>,
-        position: &WidgetPosition,
+        // position: &WidgetPosition,
     ) {
-        egui::Window::new("Map").show(ctx, |ui| {
+        egui::CentralPanel::default().show(ctx, |ui| {
             ui.label("Select Target");
 
             egui::Grid::new("MainGrid").show(ui, |ui| {
@@ -262,6 +268,7 @@ impl WidgetMap {
             // Clever way : get current heading by diff position betweenscreenshot
 
             Plot::new("my_plot")
+                // .min_size(Vec2::new(800.0,500.0))
                 // .view_aspect(2.0)
                 // .data_aspect(2.0)
                 .include_x(-PI)
@@ -270,7 +277,7 @@ impl WidgetMap {
                 .include_y(-PI / 2.0)
                 .label_formatter(|name, value| {
                     if !name.is_empty() {
-                        format!("{name}\n{}\n{}", pretty(value.x),pretty(value.y))
+                        format!("{name}\n{}\n{}", pretty(value.y),pretty(value.x))
                     } else {
                         "".to_owned()
                     }
@@ -281,11 +288,16 @@ impl WidgetMap {
                         let c = [p[0],p[1]];
                         plot_ui.points(Points::new(c).name(name).radius(3.0));
                     }
+                    let mut path = Vec::new();
+
                     for (name,p) in self.travel.iter() {
                         // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
                         let c = [p[0],p[1]];
-                        plot_ui.points(Points::new(c).name(name).radius(3.0));
+                        path.push(c);
+                        plot_ui.points(Points::new(c).name(name).radius(3.0).color(Color32::DARK_GRAY));
                     }
+
+                    plot_ui.line(Line::new(path).name("Self").width(1.5).color(Color32::DARK_GRAY));
 
                     // plot_ui.points(Points::new([position.local_coordinates.longitude(),position.local_coordinates.latitude()]).name("Position"));
 
