@@ -7,7 +7,7 @@ use crate::{
 use chrono::prelude::*;
 use eframe::egui;
 use geolib::SpaceTimePosition;
-use mainlib::{WidgetMap, WidgetPoi, WidgetPosition, WidgetTarget, WidgetTargetSelection};
+use mainlib::{WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection};
 use std::collections::HashMap;
 
 mod geolib;
@@ -17,7 +17,11 @@ mod mainlib;
 // Coordinates: x:-17068754905.863510 y:-2399480232.5053227 z:-20642.813381
 
 // Somewhere on Daymar
-// Coordinates: x:-18930379393.7 y:-2610297380.75 z:210614.307494
+// Coordinates: x:-18930379393.98 y:-2610297380.75 z:210614.307494
+// Coordinates: x:-18930499393.98 y:-2610297380.75 z:210614.307494
+// Coordinates: x:-18930579393.98 y:-2610297380.75 z:210614.307494
+// Coordinates: x:-18930679393.98 y:-2610297380.75 z:210614.307494
+// Coordinates: x:-18930779393.98 y:-2610297380.75 z:210614.307494
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
@@ -32,14 +36,13 @@ fn main() -> eframe::Result<()> {
 struct MyEguiApp {
     database: HashMap<String, Container>,
     reference_time: DateTime<Utc>,
-    time_elapsed: f64,
-
+    // time_elapsed: f64,
     space_time_position_new: SpaceTimePosition,
     space_time_position: SpaceTimePosition,
 
     position: WidgetPosition,
     target_selection: WidgetTargetSelection,
-    poi_exporter: WidgetPoi,
+    // poi_exporter: WidgetPoi,
     map: WidgetMap,
 }
 
@@ -114,30 +117,28 @@ impl eframe::App for MyEguiApp {
 
         if self.space_time_position_new.coordinates != self.space_time_position.coordinates {
             self.space_time_position = self.space_time_position_new;
-            self.time_elapsed = (self.space_time_position.timestamp - self.reference_time)
-                .num_nanoseconds()
-                .unwrap() as f64
-                / 1e9;
 
-            self.position
-                .update(&self.space_time_position, &self.database, self.time_elapsed);
+            self.position.new_coordinate(&self.space_time_position);
+            self.position.update(&self.database, self.reference_time);
+            self.map.new_position(
+                (self.position.index + 1).to_string(),
+                &self.position.local_coordinates,
+            );
         }
 
         // Display self position
+        self.position.update(&self.database, self.reference_time);
         self.position.display(ctx);
 
         // Display targets & target selector
         self.target_selection
-            .display(ctx, &self.database, self.time_elapsed, &self.position);
-
-        // Display Poi exporter
-        self.poi_exporter.update(&self.database, &self.position);
-        self.poi_exporter.display(ctx);
+            .display(ctx, &self.database, &self.position);
 
         // Display Map
-        self.map.display(ctx, &self.database, &self.position);
+        self.map.update();
+        self.map.display(ctx, &self.database);
 
         // Update DB from added Poi
-        self.database = self.poi_exporter.database.clone();
+        self.database = self.position.database.clone();
     }
 }
