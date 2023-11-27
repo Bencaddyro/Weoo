@@ -81,10 +81,16 @@ impl Vec3d {
     }
 
     pub fn loxodromie_to(&self, target: Vec3d) -> f64 {
-        ((target.longitude() - self.longitude())
-            / ((PI / 4.0 - self.latitude() / 2.0).tan().ln()
-                - (PI / 4.0 - target.latitude() / 2.0).tan().ln()))
-        .atan()
+        // let a = ((target.longitude().to_degrees() - self.longitude().to_degrees())
+            // / ((PI / 4.0 + self.latitude() / 2.0).tan().ln()
+                // - (PI / 4.0 + target.latitude() / 2.0).tan().ln()))
+        // .atan();
+        let x = target.latitude().cos() * (target.longitude() - self.longitude()).sin();
+        let y = self.latitude().cos() * target.latitude().sin() - self.latitude().sin() * target.latitude().cos() * (target.longitude() - self.longitude()).cos();
+        let b = x.atan2(y);
+        // let c = y.atan2(x);
+        // println!("{a} {b} {c}");
+        b
     }
 }
 
