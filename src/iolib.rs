@@ -1,4 +1,5 @@
 use crate::geolib::{Container, Poi, SpaceTimePosition, Vec3d, Vec4d};
+use crate::mainlib::ProcessedPosition;
 use arboard::Clipboard;
 use chrono::Utc;
 use regex::Regex;
@@ -31,7 +32,6 @@ pub fn get_space_time_position() -> Option<SpaceTimePosition> {
     Some(SpaceTimePosition {
         coordinates,
         timestamp,
-        name: None,
     })
 }
 
@@ -135,15 +135,19 @@ pub fn load_database() -> HashMap<String, Container> {
     containers
 }
 
-pub fn save_history(name: &String, position_history: &Vec<SpaceTimePosition>) {
+pub fn save_history(name: &String, position_history: &Vec<ProcessedPosition>) {
     let mut file = File::create(format!("{name}.json")).expect("This should work");
     serde_json::to_writer_pretty(&mut file, &position_history)
         .unwrap_or_else(|_| panic!("Fail to write {name}.json"))
 }
 
-pub fn import_history(name: &String) -> Vec<SpaceTimePosition> {
-    let file = File::open(format!("{name}.json")).unwrap_or_else(|_| panic!("Fail to open {name}.json !"));
-    let position_history = serde_json::from_reader(file)
-        .unwrap_or_else(|_| panic!("Fail to parse {name}.json, incorrect format"));
-    position_history
+pub fn import_history(name: &String) -> Vec<ProcessedPosition> {
+    if let Ok(file) = File::open(format!("{name}.json")) {
+        let position_history = serde_json::from_reader(file)
+            .unwrap_or_else(|_| { println!("Fail to parse {name}.json, incorrect format"); Vec::new()} );
+        position_history
+    } else {
+        println!("Fail to open {name}.json, no file");
+        Vec::new()
+    }
 }

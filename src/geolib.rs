@@ -4,9 +4,8 @@ use std::collections::HashMap;
 // use std::f64::consts::PI;
 use std::ops::{Add, Sub};
 
-#[derive(Default, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Default, Copy, Clone, PartialEq, Deserialize, Serialize)]
 pub struct SpaceTimePosition {
-    pub name: Option<String>,
     pub coordinates: Vec3d,
     pub timestamp: chrono::DateTime<Utc>,
 }

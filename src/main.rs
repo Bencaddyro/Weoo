@@ -20,8 +20,6 @@ mod mainlib;
 // Coordinates: x:-18930379393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930499393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930579393.98 y:-2610297380.75 z:210614.307494
-// Coordinates: x:-18930679393.98 y:-2610297380.75 z:210614.307494
-// Coordinates: x:-18930779393.98 y:-2610297380.75 z:210614.307494
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
@@ -118,12 +116,14 @@ impl eframe::App for MyEguiApp {
         if self.space_time_position_new.coordinates != self.space_time_position.coordinates {
             self.space_time_position = self.space_time_position_new.clone();
 
-            self.position.new_coordinate(&self.space_time_position);
+            self.position.new_coordinate(self.space_time_position, &self.database, self.reference_time);
             self.position.update(&self.database, self.reference_time);
-            self.map.new_position(
-                (self.position.index + 1).to_string(),
-                &self.position.local_coordinates,
-            );
+
+            // TODO
+            // self.map.new_position(
+            //     (self.position.index + 1).to_string(),
+            //     &self.positiondinates,
+            // );
         }
 
         // Display self position
@@ -131,14 +131,30 @@ impl eframe::App for MyEguiApp {
         self.position.display(ctx);
 
         // Display targets & target selector
-        self.target_selection
-            .display(ctx, &self.database, &self.position);
+        if !self.position.position_history.is_empty() {
 
+        self.target_selection
+            .display(ctx, &self.database, &self.position.position_history[self.position.index]);
+        };
         // Display Map
         self.map.update();
-        self.map.display(ctx, &self.database);
+        self.map.display(ctx, &self.database, &self.position);
 
         // Update DB from added Poi
         self.database = self.position.database.clone();
+
+        // Update history
+        if let Some(i) = self.position.eviction {
+            self.position.position_history.remove(i);
+            self.position.eviction = None;
+        }
+        self.position.position_history.append(&mut self.position.addition);
+
+        //TODO
+        // if !self.position.position_history.is_empty() & (self.position.position_name != "") {
+        //     self.position.position_history[self.position.index].name = self.position.position_name.clone();
+        //     self.position.position_name = "".to_string();
+        // }
+
     }
 }

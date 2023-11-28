@@ -1,6 +1,6 @@
 use crate::{
     geolib::Container,
-    mainlib::{WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection}, iolib::{save_history, import_history},
+    mainlib::{WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection, ProcessedPosition}, iolib::{save_history, import_history},
 };
 use egui::{Align, Color32, Layout, Pos2};
 use egui_plot::{Line, Plot, Points};
@@ -20,61 +20,74 @@ impl WidgetPosition {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::Grid::new("MainTopGrid").show(ui, |ui| {
                 egui::Grid::new("SelfPosition").show(ui, |ui| {
+
                     ui.heading("Self Position");
                     ui.spinner();
                     ui.end_row();
 
+                    if !self.position_history.is_empty() {
                     ui.label("Timestamp:");
-                    ui.label(format!("{}", self.timestamp));
+                    ui.label(format!("{}", self.position_history[self.index].space_time_position.timestamp));
                     ui.end_row();
                     ui.label("Coordinates:");
                     ui.label(format!(
                         "x:{} y:{} z:{}",
-                        self.absolute_coordinates.x,
-                        self.absolute_coordinates.y,
-                        self.absolute_coordinates.z
+                        self.position_history[self.index].space_time_position.coordinates.x,
+                        self.position_history[self.index].space_time_position.coordinates.y,
+                        self.position_history[self.index].space_time_position.coordinates.z
                     ));
                     ui.end_row();
                     ui.label("Container:");
-                    ui.label(self.container.name.to_string());
+                    ui.label(self.position_history[self.index].container.name.to_string());
                     ui.end_row();
 
                     ui.label("Latitute:");
-                    ui.label(pretty(self.latitude));
+                    ui.label(pretty(self.position_history[self.index].latitude));
                     ui.end_row();
                     ui.label("Longitude:");
-                    ui.label(pretty(self.longitude));
+                    ui.label(pretty(self.position_history[self.index].longitude));
                     ui.end_row();
                     ui.label("Altitude:");
-                    ui.label(format!("{:.3}km", self.altitude));
+                    ui.label(format!("{:.3}km", self.position_history[self.index].altitude));
                     ui.end_row();
+                    };
                 });
 
                 ui.add(egui::Separator::default().vertical());
 
                 ui.horizontal(|ui| {
-                    if ui.button("⏴").clicked() & (self.index > 0) {
-                        self.index -= 1;
-                    };
-                    if ui.button("⏵").clicked()
-                        & !self.position_history.is_empty()
-                        & (self.index + 1 < self.position_history.len())
-                    {
-                        self.index += 1;
-                    };
 
-                    // if !self.position_history.is_empty()
+                    if !self.position_history.is_empty() {
 
-                    let name = self.position_history.get(self.index);
-                    let name = if name.is_some() {name.unwrap().clone().name.unwrap_or("Name".to_string()).clone()} else {"Name".to_string()};
+                        if ui.button("❌").clicked() {
+                            self.eviction = Some(self.index);
+                        };
+                        if ui.button("⏴").clicked() & (self.index > 0) {
+                            self.index -= 1;
+                        };
+                        if ui.button("⏵").clicked()
+                            & (self.index + 1 < self.position_history.len())
+                        {
+                            self.index += 1;
+                        };
 
-                    ui.heading(format!("{}/{} : {}", self.index + 1, self.position_history.len(), name ));
+                        ui.heading(format!("{}/{} : {}", self.index+1, self.position_history.len(), self.position_history[self.index].clone().name));
+                        ui.add(egui::TextEdit::singleline(&mut self.name).hint_text("Custom Poi"));
 
-                    ui.add(egui::TextEdit::singleline(&mut self.name).hint_text("Custom Poi"));
+                        if ui.button("Save").clicked() {
+                            self.save_current_position();
+                        };
 
-                    if ui.button("Save").clicked() {
-                        self.save_current_position();
-                    };
+                        ui.add(egui::TextEdit::singleline(&mut self.position_history[self.index].name).hint_text("No_name"));
+
+
+                    } else {
+                        ui.heading("No history 😕");
+
+                    }
+
+
+
                 });
                 ui.end_row();
 
@@ -89,9 +102,10 @@ impl WidgetPosition {
 
                 ui.add(egui::Separator::default().vertical());
                 if ui.button("Import History").clicked() {
-                    let a= import_history(&self.history_name);
+                    self.addition = import_history(&self.history_name);
                 };
                 ui.add(egui::TextEdit::singleline(&mut self.history_name).hint_text("History_name"));
+
 
             });
         });
@@ -104,7 +118,7 @@ impl WidgetTargetSelection {
         ctx: &egui::Context,
         database: &HashMap<String, Container>,
         // elapsed_time: f64,
-        position: &WidgetPosition,
+        position: &ProcessedPosition,
     ) {
         egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
             ui.label("Select Target");
@@ -199,7 +213,7 @@ impl WidgetMap {
         &mut self,
         ctx: &egui::Context,
         database: &HashMap<String, Container>,
-        // position: &WidgetPosition,
+        position: &WidgetPosition,
     ) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.label("Select Target");
@@ -267,15 +281,15 @@ impl WidgetMap {
                         });
                     }
                     ui.heading("Self");
-                    for (i, (name, _)) in self.travel.iter().enumerate() {
+                    for p in &position.position_history {
                         ui.horizontal(|ui| {
                             if ui.button("❌").clicked() {
-                                self.eviction_self.push(i)
+                                // self.eviction_self.push(i)
                             };
                             // if ui.button("⏶").clicked() { };
                             // if ui.button("⏷").clicked() { };
 
-                            ui.label(name);
+                            ui.label(p.name.clone());
                         });
                     }
                 });
@@ -309,13 +323,14 @@ impl WidgetMap {
                         }
                         let mut path = Vec::new();
 
-                        for (name, p) in self.travel.iter() {
+                        for p in &position.position_history {
                             // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
-                            let c = [p[0], p[1]];
+                            let c = [p.local_coordinates.longitude(),p.local_coordinates.latitude()];
+                            // let c = [p[0], p[1]];
                             path.push(c);
                             plot_ui.points(
                                 Points::new(c)
-                                    .name(name)
+                                    .name(p.name.clone())
                                     .radius(3.0)
                                     .color(Color32::DARK_GRAY),
                             );
