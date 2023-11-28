@@ -31,6 +31,7 @@ pub fn get_space_time_position() -> Option<SpaceTimePosition> {
     Some(SpaceTimePosition {
         coordinates,
         timestamp,
+        name: None,
     })
 }
 

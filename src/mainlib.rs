@@ -105,7 +105,7 @@ impl WidgetPosition {
     }
 
     pub fn new_coordinate(&mut self, space_time_position: &SpaceTimePosition) {
-        self.position_history.push(*space_time_position);
+        self.position_history.push(space_time_position.clone());
         self.index = self.position_history.len() - 1;
     }
 

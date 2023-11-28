@@ -62,7 +62,13 @@ impl WidgetPosition {
                     {
                         self.index += 1;
                     };
-                    ui.heading(format!("{}", self.index + 1));
+
+                    // if !self.position_history.is_empty()
+
+                    let name = self.position_history.get(self.index);
+                    let name = if name.is_some() {name.unwrap().clone().name.unwrap_or("Name".to_string()).clone()} else {"Name".to_string()};
+
+                    ui.heading(format!("{}/{} : {}", self.index + 1, self.position_history.len(), name ));
 
                     ui.add(egui::TextEdit::singleline(&mut self.name).hint_text("Custom Poi"));
 
@@ -274,10 +280,7 @@ impl WidgetMap {
                     }
                 });
 
-                // Trace of different points based on history module ?
-
                 // plot satelite screen based on coordinates found on lidar
-
                 // TODO : how to scale screen shot ? 1920*1080 = q lat + j long -> mercator deformation :explosion_head:
 
                 // screenshot : head to 0° / pitch 0°
@@ -325,7 +328,6 @@ impl WidgetMap {
                                 .color(Color32::DARK_GRAY),
                         );
 
-                        // plot_ui.points(Points::new([position.local_coordinates.longitude(),position.local_coordinates.latitude()]).name("Position"));
                     });
             });
         });

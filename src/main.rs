@@ -116,7 +116,7 @@ impl eframe::App for MyEguiApp {
         }
 
         if self.space_time_position_new.coordinates != self.space_time_position.coordinates {
-            self.space_time_position = self.space_time_position_new;
+            self.space_time_position = self.space_time_position_new.clone();
 
             self.position.new_coordinate(&self.space_time_position);
             self.position.update(&self.database, self.reference_time);
