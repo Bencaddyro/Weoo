@@ -3,7 +3,7 @@ use arboard::Clipboard;
 use chrono::Utc;
 use regex::Regex;
 use std::collections::HashMap;
-use std::fs;
+use std::fs::{self, File};
 
 fn get_clipboard() -> String {
     let Ok(mut clipboard) = Clipboard::new() else {
@@ -115,7 +115,7 @@ pub fn load_database() -> HashMap<String, Container> {
     }
 
     // CustomPoi.json
-    if let Ok(file) = fs::File::open("CustomPoi.json") {
+    if let Ok(file) = File::open("CustomPoi.json") {
         let json: HashMap<String, Poi> =
             serde_json::from_reader(file).expect("file should be proper JSON");
 
@@ -132,4 +132,17 @@ pub fn load_database() -> HashMap<String, Container> {
     }
 
     containers
+}
+
+pub fn save_history(name: &String, position_history: &Vec<SpaceTimePosition>) {
+    let mut file = File::create(format!("{name}.json")).expect("This should work");
+    serde_json::to_writer_pretty(&mut file, &position_history)
+        .unwrap_or_else(|_| panic!("Fail to write {name}.json"))
+}
+
+pub fn import_history(name: &String) -> Vec<SpaceTimePosition> {
+    let file = File::open(format!("{name}.json")).unwrap_or_else(|_| panic!("Fail to open {name}.json !"));
+    let position_history = serde_json::from_reader(file)
+        .unwrap_or_else(|_| panic!("Fail to parse {name}.json, incorrect format"));
+    position_history
 }

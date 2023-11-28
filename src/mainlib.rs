@@ -24,6 +24,9 @@ pub struct WidgetPosition {
     // POI exporter
     pub database: HashMap<String, Container>,
     pub name: String,
+
+    // History
+    pub history_name: String,
 }
 
 #[derive(Default)]
@@ -106,6 +109,7 @@ impl WidgetPosition {
         self.index = self.position_history.len() - 1;
     }
 
+    // TODO move r/w files to iolib
     pub fn save_current_position(&mut self) {
         let mut custom_pois: HashMap<String, Poi>;
         // Open Custom Poi file

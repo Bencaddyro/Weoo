@@ -1,6 +1,6 @@
 use crate::{
     geolib::Container,
-    mainlib::{WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection},
+    mainlib::{WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection}, iolib::{save_history, import_history},
 };
 use egui::{Align, Color32, Layout, Pos2};
 use egui_plot::{Line, Plot, Points};
@@ -51,6 +51,7 @@ impl WidgetPosition {
                 });
 
                 ui.add(egui::Separator::default().vertical());
+
                 ui.horizontal(|ui| {
                     if ui.button("⏴").clicked() & (self.index > 0) {
                         self.index -= 1;
@@ -70,6 +71,22 @@ impl WidgetPosition {
                     };
                 });
                 ui.end_row();
+
+
+                ui.add(egui::Separator::default().vertical());
+                if ui.button("Save History").clicked() {
+                    save_history(&self.history_name, &self.position_history);
+                };
+                ui.add(egui::TextEdit::singleline(&mut self.history_name).hint_text("History_name"));
+
+                ui.end_row();
+
+                ui.add(egui::Separator::default().vertical());
+                if ui.button("Import History").clicked() {
+                    let a= import_history(&self.history_name);
+                };
+                ui.add(egui::TextEdit::singleline(&mut self.history_name).hint_text("History_name"));
+
             });
         });
     }
