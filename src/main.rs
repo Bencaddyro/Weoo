@@ -21,6 +21,8 @@ mod mainlib;
 // Coordinates: x:-18930379393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930499393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930579393.98 y:-2610297380.75 z:210614.307494
+// Coordinates: x:-18930679393.98 y:-2610297380.75 z:210614.307494
+// Coordinates: x:-18930779393.98 y:-2610297380.75 z:210614.307494
 static REFERENCE_TIME: Lazy<DateTime<Utc>> = Lazy::new(|| Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap());
 
 
