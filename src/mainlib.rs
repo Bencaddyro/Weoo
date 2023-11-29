@@ -1,41 +1,27 @@
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-
+use crate::geolib::{get_current_container, Container, Poi, SpaceTimePosition, Vec3d, ProcessedPosition};
 use crate::REFERENCE_TIME;
-use crate::geolib::{get_current_container, Container, Poi, SpaceTimePosition, Vec3d};
 use std::f64::consts::PI;
 use std::{collections::HashMap, f64::NAN, fs};
 
 #[derive(Clone, Default)]
 pub struct WidgetPosition {
-    pub position_history: Vec<ProcessedPosition>,
-    pub index: usize,
+    // pub position_history: Vec<ProcessedPosition>,
+    // pub index: usize,
     pub addition: Vec<ProcessedPosition>,
     pub eviction: Option<usize>,
 
+    pub position: ProcessedPosition,
 
     // POI exporter
     pub database: HashMap<String, Container>,
     pub name: String,
-// Coordinates: x:-18930779393.98 y:-2610297380.75 z:210614.307494
+    // Coordinates: x:-18930779393.98 y:-2610297380.75 z:210614.307494
 
     // History
     pub history_name: String,
 }
 
-#[derive(Clone, Default, Deserialize, Serialize)]
-pub struct ProcessedPosition {
-    pub space_time_position: SpaceTimePosition,
-    pub local_coordinates: Vec3d,
-    pub time_elapsed: f64,
-    pub container: Container,
-
-    pub name: String,
-
-    pub latitude: f64,
-    pub longitude: f64,
-    pub altitude: f64,
-}
 
 #[derive(Default)]
 pub struct WidgetTargetSelection {
@@ -77,52 +63,21 @@ impl WidgetPosition {
         }
     }
 
-    pub fn update(
-        &mut self,
-        database: &HashMap<String, Container>,
-    ) {
+    pub fn update(&mut self, database: &HashMap<String, Container>) {
         self.database = database.clone();
 
         // self.space_time_position = *space_time_position;
-        if self.position_history.is_empty() {
-            return;
-        };
-
-        // self.timestamp = self.position_history[self.index].space_time_position.timestamp;
-
-       self.position_history[self.index].space_time_position.coordinates;
+        // if self.position_history.is_empty() {
+        //     return;
+        // };
+        //
+        // // self.timestamp = self.position_history[self.index].space_time_position.timestamp;
+        //
+        // self.position_history[self.index]
+        //     .space_time_position
+        //     .coordinates;
     }
 
-    pub fn new_coordinate(&mut self, space_time_position: SpaceTimePosition, database: &HashMap<String, Container>) {
-
-        let container = get_current_container(&space_time_position.coordinates, database);
-        let time_elapsed = (space_time_position.timestamp - *REFERENCE_TIME).num_nanoseconds().unwrap() as f64 / 1e9;
-        let local_coordinates = space_time_position.coordinates.transform_to_local(time_elapsed, &container);
-        let (latitude, longitude, altitude);
-
-        if container.name != "Space" {
-            latitude = local_coordinates.latitude();
-            longitude = local_coordinates.longitude();
-            altitude = local_coordinates.altitude(&container);
-        } else {
-            latitude = NAN;
-            longitude = NAN;
-            altitude = NAN;
-        }
-        self.position_history.push(
-            ProcessedPosition {
-                space_time_position,
-                local_coordinates,
-                time_elapsed,
-                container,
-                name: String::new(),
-                latitude,
-                longitude,
-                altitude,
-            });
-
-        self.index = self.position_history.len() - 1;
-    }
 
     // TODO move r/w files to iolib
     pub fn save_current_position(&mut self) {
@@ -140,19 +95,23 @@ impl WidgetPosition {
             println!("Poi already exist, default override")
         }
 
-        let new_poi = if (self.position_history[self.index].container.name == "Space") | (self.position_history[self.index].container.name.is_empty()) {
+        let new_poi = if (self.position.container.name == "Space")
+            | (self.position.container.name.is_empty())
+        {
             Poi {
                 name: self.name.clone(),
                 container: "Space".to_string(),
-                coordinates: self.position_history[self.index].space_time_position.coordinates,
+                coordinates: self.position
+                    .space_time_position
+                    .coordinates,
                 quaternions: None,
                 marker: None,
             }
         } else {
             Poi {
                 name: self.name.clone(),
-                container: self.position_history[self.index].container.name.clone(),
-                coordinates: self.position_history[self.index].local_coordinates,
+                container: self.position.container.name.clone(),
+                coordinates: self.position.local_coordinates,
                 quaternions: None,
                 marker: None,
             }
@@ -236,7 +195,9 @@ impl WidgetTarget {
 
         // #----------------------------------------------------------Heading--------------------------------------------------------------
         // If planetary !
-        self.heading = (complete_position.space_time_position.coordinates
+        self.heading = (complete_position
+            .space_time_position
+            .coordinates
             .loxodromie_to(self.target.coordinates)
             + 2.0 * PI)
             % (2.0 * PI);

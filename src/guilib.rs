@@ -1,6 +1,7 @@
 use crate::{
-    geolib::Container,
-    mainlib::{WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection, ProcessedPosition}, iolib::{save_history, import_history},
+    geolib::{Container, ProcessedPosition},
+    iolib::{import_history, save_history},
+    mainlib::{ WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection},
 };
 use egui::{Align, Color32, Layout, Pos2};
 use egui_plot::{Line, Plot, Points};
@@ -20,83 +21,96 @@ impl WidgetPosition {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             egui::Grid::new("MainTopGrid").show(ui, |ui| {
                 egui::Grid::new("SelfPosition").show(ui, |ui| {
-
                     ui.heading("Self Position");
                     ui.spinner();
                     ui.end_row();
 
-                    if !self.position_history.is_empty() {
-                    ui.label("Timestamp:");
-                    ui.label(format!("{}", self.position_history[self.index].space_time_position.timestamp));
-                    ui.end_row();
-                    ui.label("Coordinates:");
-                    ui.label(format!(
-                        "x:{} y:{} z:{}",
-                        self.position_history[self.index].space_time_position.coordinates.x,
-                        self.position_history[self.index].space_time_position.coordinates.y,
-                        self.position_history[self.index].space_time_position.coordinates.z
-                    ));
-                    ui.end_row();
-                    ui.label("Container:");
-                    ui.label(self.position_history[self.index].container.name.to_string());
-                    ui.end_row();
+                        ui.label("Timestamp:");
+                        ui.label(format!(
+                            "{}",
+                            self.position
+                                .space_time_position
+                                .timestamp
+                        ));
+                        ui.end_row();
+                        ui.label("Coordinates:");
+                        ui.label(format!(
+                            "x:{} y:{} z:{}",
+                            self.position
+                                .space_time_position
+                                .coordinates
+                                .x,
+                            self.position
+                                .space_time_position
+                                .coordinates
+                                .y,
+                            self.position
+                                .space_time_position
+                                .coordinates
+                                .z
+                        ));
+                        ui.end_row();
+                        ui.label("Container:");
+                        ui.label(self.position.container.name.to_string());
+                        ui.end_row();
 
-                    ui.label("Latitute:");
-                    ui.label(pretty(self.position_history[self.index].latitude));
-                    ui.end_row();
-                    ui.label("Longitude:");
-                    ui.label(pretty(self.position_history[self.index].longitude));
-                    ui.end_row();
-                    ui.label("Altitude:");
-                    ui.label(format!("{:.3}km", self.position_history[self.index].altitude));
-                    ui.end_row();
-                    };
+                        ui.label("Latitute:");
+                        ui.label(pretty(self.position.latitude));
+                        ui.end_row();
+                        ui.label("Longitude:");
+                        ui.label(pretty(self.position.longitude));
+                        ui.end_row();
+                        ui.label("Altitude:");
+                        ui.label(format!(
+                            "{:.3}km",
+                            self.position.altitude
+                        ));
+                        ui.end_row();
+
                 });
 
                 ui.add(egui::Separator::default().vertical());
 
                 ui.horizontal(|ui| {
-
-                    if !self.position_history.is_empty() {
-
                         if ui.button("❌").clicked() {
                             self.eviction = Some(self.index);
                         };
                         if ui.button("⏴").clicked() & (self.index > 0) {
                             self.index -= 1;
                         };
-                        if ui.button("⏵").clicked()
-                            & (self.index + 1 < self.position_history.len())
+                        if ui.button("⏵").clicked() & (self.index + 1 < self.position_history.len())
                         {
                             self.index += 1;
                         };
 
-                        ui.heading(format!("{}/{} : {}", self.index+1, self.position_history.len(), self.position_history[self.index].clone().name));
+                        ui.heading(format!(
+                            "{}/{} : {}",
+                            self.index + 1,
+                            self.position_history.len(),
+                            self.position.clone().name
+                        ));
                         ui.add(egui::TextEdit::singleline(&mut self.name).hint_text("Custom Poi"));
 
                         if ui.button("Save").clicked() {
                             self.save_current_position();
                         };
 
-                        ui.add(egui::TextEdit::singleline(&mut self.position_history[self.index].name).hint_text("No_name"));
-
-
-                    } else {
-                        ui.heading("No history 😕");
-
-                    }
-
-
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.position.name)
+                                .hint_text("No_name"),
+                        );
+                        // ui.heading("No history 😕");
 
                 });
                 ui.end_row();
-
 
                 ui.add(egui::Separator::default().vertical());
                 if ui.button("Save History").clicked() {
                     save_history(&self.history_name, &self.position_history);
                 };
-                ui.add(egui::TextEdit::singleline(&mut self.history_name).hint_text("History_name"));
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.history_name).hint_text("History_name"),
+                );
 
                 ui.end_row();
 
@@ -104,9 +118,9 @@ impl WidgetPosition {
                 if ui.button("Import History").clicked() {
                     self.addition = import_history(&self.history_name);
                 };
-                ui.add(egui::TextEdit::singleline(&mut self.history_name).hint_text("History_name"));
-
-
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.history_name).hint_text("History_name"),
+                );
             });
         });
     }
@@ -325,7 +339,10 @@ impl WidgetMap {
 
                         for p in &position.position_history {
                             // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
-                            let c = [p.local_coordinates.longitude(),p.local_coordinates.latitude()];
+                            let c = [
+                                p.local_coordinates.longitude(),
+                                p.local_coordinates.latitude(),
+                            ];
                             // let c = [p[0], p[1]];
                             path.push(c);
                             plot_ui.points(
@@ -342,7 +359,6 @@ impl WidgetMap {
                                 .width(1.5)
                                 .color(Color32::DARK_GRAY),
                         );
-
                     });
             });
         });

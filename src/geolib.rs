@@ -10,6 +10,18 @@ pub struct SpaceTimePosition {
     pub timestamp: chrono::DateTime<Utc>,
 }
 
+#[derive(Clone, Default, Deserialize, Serialize)]
+pub struct ProcessedPosition {
+    pub space_time_position: SpaceTimePosition,
+    pub local_coordinates: Vec3d,
+    pub time_elapsed: f64,
+    pub container: Container,
+    pub name: String,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub altitude: f64,
+}
+
 #[derive(Debug, Deserialize, Serialize, Copy, Clone, PartialEq, Default)]
 pub struct Vec3d {
     pub x: f64,

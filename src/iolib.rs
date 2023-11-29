@@ -1,5 +1,4 @@
-use crate::geolib::{Container, Poi, SpaceTimePosition, Vec3d, Vec4d};
-use crate::mainlib::ProcessedPosition;
+use crate::geolib::{Container, Poi, SpaceTimePosition, Vec3d, Vec4d, ProcessedPosition};
 use arboard::Clipboard;
 use chrono::Utc;
 use regex::Regex;
@@ -143,8 +142,10 @@ pub fn save_history(name: &String, position_history: &Vec<ProcessedPosition>) {
 
 pub fn import_history(name: &String) -> Vec<ProcessedPosition> {
     if let Ok(file) = File::open(format!("{name}.json")) {
-        let position_history = serde_json::from_reader(file)
-            .unwrap_or_else(|_| { println!("Fail to parse {name}.json, incorrect format"); Vec::new()} );
+        let position_history = serde_json::from_reader(file).unwrap_or_else(|_| {
+            println!("Fail to parse {name}.json, incorrect format");
+            Vec::new()
+        });
         position_history
     } else {
         println!("Fail to open {name}.json, no file");

@@ -6,10 +6,10 @@ use crate::{
 };
 use chrono::prelude::*;
 use eframe::egui;
-use geolib::SpaceTimePosition;
+use geolib::{SpaceTimePosition, ProcessedPosition, get_current_container};
 use mainlib::{WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection};
 use once_cell::sync::Lazy;
-use std::collections::HashMap;
+use std::{collections::HashMap, f64::NAN};
 
 mod geolib;
 mod guilib;
@@ -23,8 +23,8 @@ mod mainlib;
 // Coordinates: x:-18930579393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930679393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930779393.98 y:-2610297380.75 z:210614.307494
-static REFERENCE_TIME: Lazy<DateTime<Utc>> = Lazy::new(|| Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap());
-
+static REFERENCE_TIME: Lazy<DateTime<Utc>> =
+    Lazy::new(|| Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap());
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
@@ -40,6 +40,9 @@ struct MyEguiApp {
     database: HashMap<String, Container>,
     space_time_position_new: SpaceTimePosition,
     space_time_position: SpaceTimePosition,
+
+    position_history: Vec<ProcessedPosition>,
+    index: usize,
 
     position: WidgetPosition,
     target_selection: WidgetTargetSelection,
@@ -106,6 +109,44 @@ impl MyEguiApp {
             ..Default::default()
         }
     }
+
+    pub fn new_coordinate(
+        &mut self,
+        space_time_position: SpaceTimePosition,
+        database: &HashMap<String, Container>,
+    ) {
+        let container = get_current_container(&space_time_position.coordinates, database);
+        let time_elapsed = (space_time_position.timestamp - *REFERENCE_TIME)
+            .num_nanoseconds()
+            .unwrap() as f64
+            / 1e9;
+        let local_coordinates = space_time_position
+            .coordinates
+            .transform_to_local(time_elapsed, &container);
+        let (latitude, longitude, altitude);
+
+        if container.name != "Space" {
+            latitude = local_coordinates.latitude();
+            longitude = local_coordinates.longitude();
+            altitude = local_coordinates.altitude(&container);
+        } else {
+            latitude = NAN;
+            longitude = NAN;
+            altitude = NAN;
+        }
+        self.position_history.push(ProcessedPosition {
+            space_time_position,
+            local_coordinates,
+            time_elapsed,
+            container,
+            name: String::new(),
+            latitude,
+            longitude,
+            altitude,
+        });
+
+        self.index = self.position_history.len() - 1;
+    }
 }
 
 impl eframe::App for MyEguiApp {
@@ -117,7 +158,7 @@ impl eframe::App for MyEguiApp {
         if self.space_time_position_new.coordinates != self.space_time_position.coordinates {
             self.space_time_position = self.space_time_position_new;
 
-            self.position.new_coordinate(self.space_time_position, &self.database);
+            self.new_coordinate(self.space_time_position, &self.database);
             self.position.update(&self.database);
 
             // TODO
@@ -132,11 +173,11 @@ impl eframe::App for MyEguiApp {
         self.position.display(ctx);
 
         // Display targets & target selector
-        if !self.position.position_history.is_empty() {
-
-        self.target_selection
-            .display(ctx, &self.database, &self.position.position_history[self.position.index]);
-        };
+            self.target_selection.display(
+                ctx,
+                &self.database,
+                &self.position.position,
+            );
         // Display Map
         self.map.update();
         self.map.display(ctx, &self.database, &self.position);
@@ -146,16 +187,16 @@ impl eframe::App for MyEguiApp {
 
         // Update history
         if let Some(i) = self.position.eviction {
-            self.position.position_history.remove(i);
+            self.position_history.remove(i);
             self.position.eviction = None;
         }
-        self.position.position_history.append(&mut self.position.addition);
+        self.position_history
+            .append(&mut self.position.addition);
 
         //TODO
         // if !self.position.position_history.is_empty() & (self.position.position_name != "") {
         //     self.position.position_history[self.position.index].name = self.position.position_name.clone();
         //     self.position.position_name = "".to_string();
         // }
-
     }
 }
