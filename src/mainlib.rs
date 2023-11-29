@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+use crate::REFERENCE_TIME;
 use crate::geolib::{get_current_container, Container, Poi, SpaceTimePosition, Vec3d};
 use std::f64::consts::PI;
 use std::{collections::HashMap, f64::NAN, fs};
@@ -9,20 +10,9 @@ use std::{collections::HashMap, f64::NAN, fs};
 pub struct WidgetPosition {
     pub position_history: Vec<ProcessedPosition>,
     pub index: usize,
-    // pub position_name: String,
     pub addition: Vec<ProcessedPosition>,
     pub eviction: Option<usize>,
-    // pub space_time_position: SpaceTimePosition,
-    // pub container: Container,
 
-    // pub absolute_coordinates: Vec3d,
-    // pub local_coordinates: Vec3d,
-    // pub timestamp: DateTime<Utc>,
-    // pub time_elapsed: f64,
-
-    // pub latitude: f64,
-    // pub longitude: f64,
-    // pub altitude: f64,
 
     // POI exporter
     pub database: HashMap<String, Container>,
@@ -89,9 +79,7 @@ impl WidgetPosition {
 
     pub fn update(
         &mut self,
-        // space_time_position: &SpaceTimePosition,
         database: &HashMap<String, Container>,
-        reference_time: DateTime<Utc>,
     ) {
         self.database = database.clone();
 
@@ -105,11 +93,10 @@ impl WidgetPosition {
        self.position_history[self.index].space_time_position.coordinates;
     }
 
-    pub fn new_coordinate(&mut self, space_time_position: SpaceTimePosition,         database: &HashMap<String, Container>,
-        reference_time: DateTime<Utc> ) {
+    pub fn new_coordinate(&mut self, space_time_position: SpaceTimePosition, database: &HashMap<String, Container>) {
 
         let container = get_current_container(&space_time_position.coordinates, database);
-        let time_elapsed = (space_time_position.timestamp - reference_time).num_nanoseconds().unwrap() as f64 / 1e9;
+        let time_elapsed = (space_time_position.timestamp - *REFERENCE_TIME).num_nanoseconds().unwrap() as f64 / 1e9;
         let local_coordinates = space_time_position.coordinates.transform_to_local(time_elapsed, &container);
         let (latitude, longitude, altitude);
 

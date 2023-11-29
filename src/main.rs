@@ -8,6 +8,7 @@ use chrono::prelude::*;
 use eframe::egui;
 use geolib::SpaceTimePosition;
 use mainlib::{WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection};
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
 mod geolib;
@@ -20,6 +21,8 @@ mod mainlib;
 // Coordinates: x:-18930379393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930499393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930579393.98 y:-2610297380.75 z:210614.307494
+static REFERENCE_TIME: Lazy<DateTime<Utc>> = Lazy::new(|| Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap());
+
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions::default();
@@ -33,14 +36,11 @@ fn main() -> eframe::Result<()> {
 #[derive(Default)]
 struct MyEguiApp {
     database: HashMap<String, Container>,
-    reference_time: DateTime<Utc>,
-    // time_elapsed: f64,
     space_time_position_new: SpaceTimePosition,
     space_time_position: SpaceTimePosition,
 
     position: WidgetPosition,
     target_selection: WidgetTargetSelection,
-    // poi_exporter: WidgetPoi,
     map: WidgetMap,
 }
 
@@ -99,7 +99,6 @@ impl MyEguiApp {
         MyEguiApp {
             map: WidgetMap::new(&database),
             database,
-            reference_time: Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap(),
             position: WidgetPosition::new(),
             target_selection: WidgetTargetSelection::new(targets),
             ..Default::default()
@@ -114,10 +113,10 @@ impl eframe::App for MyEguiApp {
         }
 
         if self.space_time_position_new.coordinates != self.space_time_position.coordinates {
-            self.space_time_position = self.space_time_position_new.clone();
+            self.space_time_position = self.space_time_position_new;
 
-            self.position.new_coordinate(self.space_time_position, &self.database, self.reference_time);
-            self.position.update(&self.database, self.reference_time);
+            self.position.new_coordinate(self.space_time_position, &self.database);
+            self.position.update(&self.database);
 
             // TODO
             // self.map.new_position(
@@ -127,7 +126,7 @@ impl eframe::App for MyEguiApp {
         }
 
         // Display self position
-        self.position.update(&self.database, self.reference_time);
+        self.position.update(&self.database);
         self.position.display(ctx);
 
         // Display targets & target selector
