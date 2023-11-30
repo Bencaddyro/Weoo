@@ -82,6 +82,7 @@ pub fn load_database() -> HashMap<String, Container> {
                     longitude: Some(coordinates.longitude()),
                     altitude: Some(NAN),
                     // coordinates.altitude(database.get(&target.container).unwrap_or_else(|| {                    panic!("No Container with that name : \"{}\"", &target.container)                })),
+                    // TODO
                 };
                 poi.insert(new_poi.name.clone(), new_poi);
             }
@@ -142,6 +143,7 @@ pub fn load_database() -> HashMap<String, Container> {
     containers
 }
 
+// TODO
 // pub fn save_history(name: &String, position_history: &Vec<ProcessedPosition>) {
 //     let mut file = File::create(format!("{name}.json")).expect("This should work");
 //     serde_json::to_writer_pretty(&mut file, &position_history)

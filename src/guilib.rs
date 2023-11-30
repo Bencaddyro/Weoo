@@ -187,17 +187,17 @@ impl WidgetTargets {
     pub fn display(
         &mut self,
         ctx: &egui::Context,
-        // database: &HashMap<String, Container>,
-        // elapsed_time: f64,
-        position_history: &Vec<ProcessedPosition>,
+        index: &mut usize,
+        position_history: &mut Vec<ProcessedPosition>,
     ) {
         egui::SidePanel::left("my_left_panel").show(ctx, |ui| {
             ui.heading("Targets");
 
-            for e in self.targets.iter_mut() {
+            let mut eviction = Vec::new();
+            for (i, e) in self.targets.iter_mut().enumerate() {
                 ui.horizontal(|ui| {
                     if ui.button("❌").clicked() {
-                        // self.eviction.push(i)
+                        eviction.push(i);
                     };
                     // if ui.button("⏶").clicked() { };
                     // if ui.button("⏷").clicked() { };
@@ -207,12 +207,18 @@ impl WidgetTargets {
 
                 e.display(ctx);
             }
-            ui.heading("Self");
+            for i in eviction {
+                self.targets.remove(i);
+            }
 
-            for p in position_history {
+            ui.heading("Self Positions");
+
+            let mut eviction = Vec::new();
+
+            for (i, p) in position_history.iter().enumerate() {
                 ui.horizontal(|ui| {
                     if ui.button("❌").clicked() {
-                        // self.eviction_self.push(i)
+                        eviction.push(i)
                     };
                     // if ui.button("⏶").clicked() { };
                     // if ui.button("⏷").clicked() { };
@@ -220,6 +226,18 @@ impl WidgetTargets {
                     ui.label(p.name.clone());
                 });
             }
+
+            for i in eviction {
+                position_history.remove(i);
+            }
+
+            // clamp index cause deletion
+            let len = if position_history.is_empty() {
+                0
+            } else {
+                position_history.len() - 1
+            };
+            *index = (*index).min(len);
 
             // Remove hidden targets
             // self.targets.retain(|_, v| v.open);
@@ -308,7 +326,6 @@ impl WidgetMap {
                             p.local_coordinates.longitude(),
                             p.local_coordinates.latitude(),
                         ];
-                        // let c = [p[0], p[1]];
                         path.push(c);
                         plot_ui.points(
                             Points::new(c)

@@ -3,17 +3,11 @@ use std::{collections::HashMap, f64::consts::PI};
 
 #[derive(Clone, Default)]
 pub struct WidgetTopPosition {
-    // pub position_history: Vec<ProcessedPosition>,
-    // pub index: usize,
     pub addition: Vec<ProcessedPosition>,
-    pub eviction: Option<usize>,
-
-    // pub position: ProcessedPosition,
 
     // POI exporter
     pub database: HashMap<String, Container>,
     pub name: String,
-    // Coordinates: x:-18930779393.98 y:-2610297380.75 z:210614.307494
 
     // History
     pub history_name: String,
@@ -44,24 +38,16 @@ pub struct WidgetTarget {
 
 #[derive(Default)]
 pub struct WidgetMap {
-    // pub open: bool,
-    // pub targets: Vec<(String, [f64; 2])>,
-    // pub target_container: Container,
-    // pub target_poi: Poi,
-    // pub travel: Vec<(String, [f64; 2])>,
-    // pub eviction: Vec<usize>,
-    // pub eviction_self: Vec<usize>,
+    // Nothing for now
+    // Futur: Map parameters : Container selector, 2D / 3D, height map, biome
 }
 
 impl WidgetTopPosition {
-    pub fn new() -> Self {
-        Self {
-            // latitude: NAN,
-            // longitude: NAN,
-            // altitude: NAN,
-            ..Default::default()
-        }
-    }
+    // pub fn new() -> Self {
+    //     Self {
+    //         ..Default::default()
+    //     }
+    // }
 
     pub fn update(&mut self, database: &HashMap<String, Container>) {
         self.database = database.clone();
@@ -200,24 +186,4 @@ impl WidgetTarget {
                 % (2.0 * PI);
         }
     }
-}
-
-impl WidgetMap {
-    pub fn new() -> Self {
-        Self {
-            // ..Default::default()
-        }
-    }
-
-    // pub fn update(&mut self) {
-    //     // for i in &self.eviction_self {
-    //     //     self.travel.remove(i.to_owned());
-    //     // }
-    //     // self.eviction_self = Vec::new();
-    //
-    //     for i in &self.eviction {
-    //         self.targets.remove(i.to_owned());
-    //     }
-    //     self.eviction = Vec::new();
-    // }
 }

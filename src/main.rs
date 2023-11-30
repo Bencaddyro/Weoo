@@ -106,9 +106,9 @@ impl MyEguiApp {
         );
 
         MyEguiApp {
-            map: WidgetMap::new(),
+            // map: WidgetMap::new(),
             database,
-            position: WidgetTopPosition::new(),
+            // position: WidgetTopPosition::new(),
             targets: WidgetTargets::new(targets),
             ..Default::default()
         }
@@ -152,7 +152,6 @@ impl MyEguiApp {
         };
 
         // add it to history
-        // add it to map
         self.position_history.push(new_position);
         self.index = self.position_history.len() - 1;
     }
@@ -183,7 +182,8 @@ impl eframe::App for MyEguiApp {
         );
 
         // Display targets & target selector
-        self.targets.display(ctx, &self.position_history);
+        self.targets
+            .display(ctx, &mut self.index, &mut self.position_history);
 
         // Display Map
         self.map
@@ -192,17 +192,6 @@ impl eframe::App for MyEguiApp {
         // Update DB from added Poi
         self.database = self.position.database.clone();
 
-        // Update history
-        if let Some(i) = self.position.eviction {
-            self.position_history.remove(i);
-            self.position.eviction = None;
-        }
-        self.position_history.append(&mut self.position.addition);
-
-        //TODO
-        // if !self.position.position_history.is_empty() & (self.position.position_name != "") {
-        //     self.position.position_history[self.position.index].name = self.position.position_name.clone();
-        //     self.position.position_name = "".to_string();
-        // }
+        // self.position_history.append(&mut self.position.addition); TODO move to display position Top
     }
 }
