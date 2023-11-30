@@ -1,8 +1,9 @@
-use crate::geolib::{Container, Poi, SpaceTimePosition, Vec3d, Vec4d, ProcessedPosition};
+use crate::geolib::{Container, Poi, ProcessedPosition, SpaceTimePosition, Vec3d, Vec4d};
 use arboard::Clipboard;
 use chrono::Utc;
 use regex::Regex;
 use std::collections::HashMap;
+use std::f64::NAN;
 use std::fs::{self, File};
 
 fn get_clipboard() -> String {
@@ -51,14 +52,16 @@ pub fn load_database() -> HashMap<String, Container> {
                 serde_json::from_value(vv.get("POI").unwrap().to_owned()).unwrap();
 
             for e in ppoi.into_values() {
+                let coordinates = Vec3d {
+                    x: e.get("X").unwrap().as_f64().unwrap(),
+                    y: e.get("Y").unwrap().as_f64().unwrap(),
+                    z: e.get("Z").unwrap().as_f64().unwrap(),
+                };
+
                 let new_poi = Poi {
                     name: e.get("Name").unwrap().to_string().replace('"', ""),
                     container: e.get("Container").unwrap().to_string().replace('"', ""),
-                    coordinates: Vec3d {
-                        x: e.get("X").unwrap().as_f64().unwrap(),
-                        y: e.get("Y").unwrap().as_f64().unwrap(),
-                        z: e.get("Z").unwrap().as_f64().unwrap(),
-                    },
+                    coordinates,
                     quaternions: Some(Vec4d {
                         qw: e.get("qw").unwrap().as_f64().unwrap(),
                         qx: e.get("qx").unwrap().as_f64().unwrap(),
@@ -74,6 +77,11 @@ pub fn load_database() -> HashMap<String, Container> {
                             .parse()
                             .unwrap(),
                     ),
+
+                    latitude: Some(coordinates.latitude()),
+                    longitude: Some(coordinates.longitude()),
+                    altitude: Some(NAN),
+                    // coordinates.altitude(database.get(&target.container).unwrap_or_else(|| {                    panic!("No Container with that name : \"{}\"", &target.container)                })),
                 };
                 poi.insert(new_poi.name.clone(), new_poi);
             }
@@ -134,11 +142,11 @@ pub fn load_database() -> HashMap<String, Container> {
     containers
 }
 
-pub fn save_history(name: &String, position_history: &Vec<ProcessedPosition>) {
-    let mut file = File::create(format!("{name}.json")).expect("This should work");
-    serde_json::to_writer_pretty(&mut file, &position_history)
-        .unwrap_or_else(|_| panic!("Fail to write {name}.json"))
-}
+// pub fn save_history(name: &String, position_history: &Vec<ProcessedPosition>) {
+//     let mut file = File::create(format!("{name}.json")).expect("This should work");
+//     serde_json::to_writer_pretty(&mut file, &position_history)
+//         .unwrap_or_else(|_| panic!("Fail to write {name}.json"))
+// }
 
 pub fn import_history(name: &String) -> Vec<ProcessedPosition> {
     if let Ok(file) = File::open(format!("{name}.json")) {

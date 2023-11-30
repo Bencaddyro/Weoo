@@ -1,7 +1,6 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-// use std::f64::consts::PI;
 use std::ops::{Add, Sub};
 
 #[derive(Default, Copy, Clone, PartialEq, Deserialize, Serialize)]
@@ -147,6 +146,9 @@ pub struct Poi {
     pub coordinates: Vec3d,
     pub quaternions: Option<Vec4d>,
     pub marker: Option<bool>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
+    pub altitude: Option<f64>,
 }
 
 pub fn get_current_container(pos: &Vec3d, database: &HashMap<String, Container>) -> Container {

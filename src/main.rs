@@ -6,23 +6,25 @@ use crate::{
 };
 use chrono::prelude::*;
 use eframe::egui;
-use geolib::{SpaceTimePosition, ProcessedPosition, get_current_container};
-use mainlib::{WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection};
+use geolib::{get_current_container, ProcessedPosition, SpaceTimePosition};
+use mainlib::{WidgetMap, WidgetTarget, WidgetTargets, WidgetTopPosition};
 use once_cell::sync::Lazy;
 use std::{collections::HashMap, f64::NAN};
+use uuid::Uuid;
 
 mod geolib;
 mod guilib;
 mod iolib;
 mod mainlib;
-// Coordinates: x:-17068754905.863510 y:-2399480232.5053227 z:-20642.813381
 
+// Coordinates: x:-17068754905.863510 y:-2399480232.5053227 z:-20642.813381
 // Somewhere on Daymar
 // Coordinates: x:-18930379393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930499393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930579393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930679393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930779393.98 y:-2610297380.75 z:210614.307494
+
 static REFERENCE_TIME: Lazy<DateTime<Utc>> =
     Lazy::new(|| Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap());
 
@@ -37,15 +39,17 @@ fn main() -> eframe::Result<()> {
 
 #[derive(Default)]
 struct MyEguiApp {
+    // Data
     database: HashMap<String, Container>,
-    space_time_position_new: SpaceTimePosition,
     space_time_position: SpaceTimePosition,
 
-    position_history: Vec<ProcessedPosition>,
+    // App State
     index: usize,
+    position_history: Vec<ProcessedPosition>,
 
-    position: WidgetPosition,
-    target_selection: WidgetTargetSelection,
+    // Gui component
+    position: WidgetTopPosition,
+    targets: WidgetTargets,
     map: WidgetMap,
 }
 
@@ -87,40 +91,39 @@ impl MyEguiApp {
             .unwrap()
             .to_owned();
 
-        let mut targets = HashMap::new();
-        targets.insert(
-            format!("{} - {}", target1.container, target1.name),
+        let mut targets = Vec::new();
+        targets.push(
+            // format!("{} - {}", target1.container, target1.name),
             WidgetTarget::new(target1, &database),
         );
-        targets.insert(
-            format!("{} - {}", target2.container, target2.name),
+        targets.push(
+            // format!("{} - {}", target2.container, target2.name),
             WidgetTarget::new(target2, &database),
         );
-        targets.insert(
-            format!("{} - {}", target3.container, target3.name),
+        targets.push(
+            // format!("{} - {}", target3.container, target3.name),
             WidgetTarget::new(target3, &database),
         );
 
         MyEguiApp {
-            map: WidgetMap::new(&database),
+            map: WidgetMap::new(),
             database,
-            position: WidgetPosition::new(),
-            target_selection: WidgetTargetSelection::new(targets),
+            position: WidgetTopPosition::new(),
+            targets: WidgetTargets::new(targets),
             ..Default::default()
         }
     }
 
-    pub fn new_coordinate(
-        &mut self,
-        space_time_position: SpaceTimePosition,
-        database: &HashMap<String, Container>,
-    ) {
-        let container = get_current_container(&space_time_position.coordinates, database);
-        let time_elapsed = (space_time_position.timestamp - *REFERENCE_TIME)
+    pub fn new_coordinates_input(&mut self) {
+        // create ProcessedPosition from input
+        let container =
+            get_current_container(&self.space_time_position.coordinates, &self.database);
+        let time_elapsed = (self.space_time_position.timestamp - *REFERENCE_TIME)
             .num_nanoseconds()
             .unwrap() as f64
             / 1e9;
-        let local_coordinates = space_time_position
+        let local_coordinates = self
+            .space_time_position
             .coordinates
             .transform_to_local(time_elapsed, &container);
         let (latitude, longitude, altitude);
@@ -134,53 +137,57 @@ impl MyEguiApp {
             longitude = NAN;
             altitude = NAN;
         }
-        self.position_history.push(ProcessedPosition {
-            space_time_position,
+
+        let name = "# ".to_owned() + &Uuid::new_v4().to_string()[9..18].to_uppercase();
+
+        let new_position = ProcessedPosition {
+            space_time_position: self.space_time_position,
             local_coordinates,
             time_elapsed,
             container,
-            name: String::new(),
+            name,
             latitude,
             longitude,
             altitude,
-        });
+        };
 
+        // add it to history
+        // add it to map
+        self.position_history.push(new_position);
         self.index = self.position_history.len() - 1;
     }
 }
 
 impl eframe::App for MyEguiApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if let Some(space_time_position) = get_space_time_position() {
-            self.space_time_position_new = space_time_position;
+        if let Some(space_time_position_input) = get_space_time_position() {
+            if space_time_position_input.coordinates != self.space_time_position.coordinates {
+                // New Input !
+                self.space_time_position = space_time_position_input;
+                self.new_coordinates_input();
+            }
         }
 
-        if self.space_time_position_new.coordinates != self.space_time_position.coordinates {
-            self.space_time_position = self.space_time_position_new;
-
-            self.new_coordinate(self.space_time_position, &self.database);
-            self.position.update(&self.database);
-
-            // TODO
-            // self.map.new_position(
-            //     (self.position.index + 1).to_string(),
-            //     &self.positiondinates,
-            // );
+        for i in self.targets.targets.iter_mut() {
+            i.update(&self.database, self.position_history.get(self.index));
         }
 
         // Display self position
         self.position.update(&self.database);
-        self.position.display(ctx);
+        self.position.display(
+            ctx,
+            &self.database,
+            &mut self.index,
+            &mut self.position_history,
+            &mut self.targets,
+        );
 
         // Display targets & target selector
-            self.target_selection.display(
-                ctx,
-                &self.database,
-                &self.position.position,
-            );
+        self.targets.display(ctx, &self.position_history);
+
         // Display Map
-        self.map.update();
-        self.map.display(ctx, &self.database, &self.position);
+        self.map
+            .display(ctx, &mut self.position_history, &self.targets);
 
         // Update DB from added Poi
         self.database = self.position.database.clone();
@@ -190,8 +197,7 @@ impl eframe::App for MyEguiApp {
             self.position_history.remove(i);
             self.position.eviction = None;
         }
-        self.position_history
-            .append(&mut self.position.addition);
+        self.position_history.append(&mut self.position.addition);
 
         //TODO
         // if !self.position.position_history.is_empty() & (self.position.position_name != "") {
