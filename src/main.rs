@@ -47,6 +47,9 @@ struct MyEguiApp {
     index: usize,
     position_history: Vec<ProcessedPosition>,
 
+    paths: HashMap<String, Vec<ProcessedPosition>>,
+
+
     // Gui component
     position: WidgetTopPosition,
     targets: WidgetTargets,
@@ -179,6 +182,7 @@ impl eframe::App for MyEguiApp {
             &mut self.index,
             &mut self.position_history,
             &mut self.targets,
+            &mut self.paths
         );
 
         // Display targets & target selector

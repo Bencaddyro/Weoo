@@ -143,12 +143,12 @@ pub fn load_database() -> HashMap<String, Container> {
     containers
 }
 
-// TODO
-// pub fn save_history(name: &String, position_history: &Vec<ProcessedPosition>) {
-//     let mut file = File::create(format!("{name}.json")).expect("This should work");
-//     serde_json::to_writer_pretty(&mut file, &position_history)
-//         .unwrap_or_else(|_| panic!("Fail to write {name}.json"))
-// }
+
+pub fn save_history(name: &String, position_history: &Vec<ProcessedPosition>) {
+    let mut file = File::create(format!("{name}.json")).expect("This should work");
+    serde_json::to_writer_pretty(&mut file, &position_history)
+        .unwrap_or_else(|_| panic!("Fail to write {name}.json"))
+}
 
 pub fn import_history(name: &String) -> Vec<ProcessedPosition> {
     if let Ok(file) = File::open(format!("{name}.json")) {

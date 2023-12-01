@@ -1,9 +1,11 @@
 use crate::{
     geolib::{Container, ProcessedPosition},
-    iolib::import_history,
+    iolib::{import_history, save_history},
     mainlib::{WidgetMap, WidgetTarget, WidgetTargets, WidgetTopPosition},
 };
-use egui::{Align, Color32, Layout, Pos2};
+use egui::{
+    Align, Color32, ComboBox, Context, Grid, Layout, Pos2, Separator, TextEdit, TopBottomPanel,
+};
 use egui_plot::{Line, Plot, Points};
 use std::{collections::HashMap, f64::consts::PI};
 
@@ -28,155 +30,170 @@ pub fn pretty(a: f64) -> String {
 impl WidgetTopPosition {
     pub fn display(
         &mut self,
-        ctx: &egui::Context,
+        ctx: &Context,
         database: &HashMap<String, Container>,
         index: &mut usize,
         position_history: &mut Vec<ProcessedPosition>,
         targets: &mut WidgetTargets,
+        paths: &mut HashMap<String, Vec<ProcessedPosition>>,
     ) {
         let len = position_history.len();
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                // Current position
 
-                if let Some(position) = position_history.get_mut(*index) {
-                    egui::Grid::new("SelfPosition").show(ui, |ui| {
+        TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            // ui.columns(5, |columns| {
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    // let ui = &mut columns[0];
+                    // Current position
+                    ui.horizontal(|ui| {
                         ui.heading("Self Position");
                         ui.spinner();
-                        ui.end_row();
-                        ui.label("Timestamp:");
-                        ui.label(format!("{}", position.space_time_position.timestamp));
-                        ui.end_row();
-                        ui.label("Coordinates:");
-                        ui.label(format!(
-                            "x:{} y:{} z:{}",
-                            position.space_time_position.coordinates.x,
-                            position.space_time_position.coordinates.y,
-                            position.space_time_position.coordinates.z
-                        ));
-                        ui.end_row();
-                        ui.label("Container:");
-                        ui.label(position.container.name.to_string());
-                        ui.end_row();
-                        ui.label("Latitute:");
-                        ui.label(pretty(position.latitude));
-                        ui.end_row();
-                        ui.label("Longitude:");
-                        ui.label(pretty(position.longitude));
-                        ui.end_row();
-                        ui.label("Altitude:");
-                        ui.label(format!("{:.3}km", position.altitude));
-                        ui.end_row();
                     });
-                } else {
-                    ui.heading("No Position 😕");
-                    ui.spinner();
-                }
 
-                ui.separator();
-                // History
-                ui.vertical(|ui| {
                     if let Some(position) = position_history.get_mut(*index) {
-                        ui.horizontal(|ui| {
-                            if ui.button("❌").clicked() {
-                                // self.eviction = Some(self.index);
-                            };
-                            if ui.button("⏴").clicked() & (*index > 0) {
-                                *index -= 1;
-                            };
-                            if ui.button("⏵").clicked() & (*index + 1 < len) {
-                                *index += 1;
-                            };
-
-                            ui.heading(format!("{}/{}:", *index + 1, len,));
-
-                            ui.heading(position.name.to_string());
-                        });
-                        ui.horizontal(|ui| {
-                            ui.add(
-                                egui::TextEdit::singleline(&mut position.name).hint_text("No_name"),
-                            );
-
-                            if ui.button("Save as POI").clicked() {
-                                // self.save_current_position();
-                            };
-
+                        egui::Grid::new("SelfPosition").show(ui, |ui| {
+                            ui.label("Timestamp:");
+                            ui.label(format!("{}", position.space_time_position.timestamp));
+                            ui.end_row();
+                            ui.label("Coordinates_X:");
+                            ui.label(format!("{}", position.space_time_position.coordinates.x));
+                            ui.end_row();
+                            ui.label("Coordinates_Y:");
+                            ui.label(format!("{}", position.space_time_position.coordinates.y));
+                            ui.end_row();
+                            ui.label("Coordinates_Z:");
+                            ui.label(format!("{}", position.space_time_position.coordinates.z));
+                            ui.end_row();
+                            ui.label("Container:");
+                            ui.label(position.container.name.to_string());
+                            ui.end_row();
+                            ui.label("Latitute:");
+                            ui.label(pretty(position.latitude));
+                            ui.end_row();
+                            ui.label("Longitude:");
+                            ui.label(pretty(position.longitude));
+                            ui.end_row();
+                            ui.label("Altitude:");
+                            ui.label(format!("{:.3}km", position.altitude));
                             ui.end_row();
                         });
                     } else {
                         ui.heading("No Position 😕");
-                    };
-
-                    egui::Grid::new("HistoryGridThree").show(ui, |ui| {
-                        if ui.button("Save History").clicked() {
-                            // save_history(&self.history_name, &self.position_history);
-                        };
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.history_name)
-                                .hint_text("History_name"),
-                        );
-
-                        ui.end_row();
-
-                        if ui.button("Import History").clicked() {
-                            self.addition = import_history(&self.history_name);
-                        };
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.history_name)
-                                .hint_text("History_name"),
-                        );
-                    });
+                    }
                 });
+
+
+                ui.separator();
+                // History
+
+                    ui.vertical(|ui| {
+                        let mut eviction = false;
+                        ui.heading("Path History");
+
+                        if let Some(position) = position_history.get_mut(*index) {
+                            ui.horizontal(|ui| {
+                                if ui.button("❌").clicked() {
+                                    eviction = true;
+                                };
+                                if ui.button("⏴").clicked() & (*index > 0) {
+                                    *index -= 1;
+                                };
+                                if ui.button("⏵").clicked() & (*index + 1 < len) {
+                                    *index += 1;
+                                };
+
+                                ui.heading(format!("{}/{}:", *index + 1, len,));
+
+                                ui.heading(position.name.to_string());
+                            });
+                            ui.horizontal(|ui| {
+                                ui.add(
+                                    TextEdit::singleline(&mut position.name).hint_text("No_name"),
+                                );
+
+                                if ui.button("Save as POI").clicked() {
+                                    // self.save_current_position();
+                                };
+
+                                ui.end_row();
+                            });
+                        } else {
+                            ui.heading("No Position 😕");
+                        };
+                        if eviction {
+                            position_history.remove(*index);
+                        }
+
+                        // ui.separator(); // BUG fill entire right panel
+                        ui.label("---------------------------");
+                        ui.vertical(|ui| {
+                            ui.heading("Path I/O");
+
+                            if ui.button("Export Path").clicked() {
+                                save_history(&self.history_name, position_history);
+                            };
+                            if ui.button("Import Path").clicked() {
+                                paths.insert(self.history_name.to_owned(), import_history(&self.history_name));
+                            };
+                            ui.add(
+                                TextEdit::singleline(&mut self.history_name).hint_text("Path Name"),
+                            );
+                        });
+                    });
+
                 ui.separator();
                 // Target selection
 
-                egui::Grid::new("TargetSelector").show(ui, |ui| {
-                    ui.label("Container");
-                    egui::ComboBox::from_id_source("Container")
-                        .selected_text(self.target_container.name.clone())
-                        .show_ui(ui, |ui| {
-                            for container in database.values() {
-                                ui.selectable_value(
-                                    &mut self.target_container,
-                                    container.clone(),
-                                    container.name.clone(),
-                                );
-                            }
-                        });
-                    ui.end_row();
-
-                    ui.label("Poi");
-                    egui::ComboBox::from_id_source("Poi")
-                        .selected_text(self.target_poi.name.clone())
-                        .show_ui(ui, |ui| {
-                            if database.contains_key(&self.target_container.name) {
-                                for poi in database
-                                    .get(&self.target_container.name)
-                                    .unwrap()
-                                    .poi
-                                    .values()
-                                {
+                ui.vertical(|ui| {
+                    ui.heading("Target Selector");
+                    Grid::new("TargetSelector").show(ui, |ui| {
+                        ui.label("Container");
+                        ComboBox::from_id_source("Container")
+                            .selected_text(self.target_container.name.clone())
+                            .show_ui(ui, |ui| {
+                                for container in database.values() {
                                     ui.selectable_value(
-                                        &mut self.target_poi,
-                                        poi.clone(),
-                                        poi.name.clone(),
+                                        &mut self.target_container,
+                                        container.clone(),
+                                        container.name.clone(),
                                     );
                                 }
-                            }
-                        });
-                    ui.end_row();
+                            });
+                        ui.end_row();
 
-                    if ui.button("Add Target").clicked()
-                        & database.contains_key(&self.target_poi.container)
-                    {
-                        targets.targets.push(
-                            // TODO avoid duplicate
-                            // format!("{} - {}", self.target_container.name, self.target_poi.name),
-                            WidgetTarget::new(self.target_poi.clone(), database),
-                        );
-                    };
+                        ui.label("Poi");
+                        ComboBox::from_id_source("Poi")
+                            .selected_text(self.target_poi.name.clone())
+                            .show_ui(ui, |ui| {
+                                if database.contains_key(&self.target_container.name) {
+                                    for poi in database
+                                        .get(&self.target_container.name)
+                                        .unwrap()
+                                        .poi
+                                        .values()
+                                    {
+                                        ui.selectable_value(
+                                            &mut self.target_poi,
+                                            poi.clone(),
+                                            poi.name.clone(),
+                                        );
+                                    }
+                                }
+                            });
+                        ui.end_row();
 
-                    ui.end_row();
+                        if ui.button("Add Target").clicked()
+                            & database.contains_key(&self.target_poi.container)
+                        {
+                            targets.targets.push(
+                                // TODO avoid duplicate
+                                // format!("{} - {}", self.target_container.name, self.target_poi.name),
+                                WidgetTarget::new(self.target_poi.clone(), database),
+                            );
+                        };
+
+                        ui.end_row();
+                    });
                 });
             });
         });
