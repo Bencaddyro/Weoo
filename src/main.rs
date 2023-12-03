@@ -94,24 +94,14 @@ impl MyEguiApp {
             .unwrap()
             .to_owned();
 
-        let mut targets = Vec::new();
-        targets.push(
-            // format!("{} - {}", target1.container, target1.name),
+        let targets = vec![
             WidgetTarget::new(target1, &database),
-        );
-        targets.push(
-            // format!("{} - {}", target2.container, target2.name),
             WidgetTarget::new(target2, &database),
-        );
-        targets.push(
-            // format!("{} - {}", target3.container, target3.name),
             WidgetTarget::new(target3, &database),
-        );
+        ];
 
         MyEguiApp {
-            // map: WidgetMap::new(),
             database,
-            // position: WidgetTopPosition::new(),
             targets: WidgetTargets::new(targets),
             ..Default::default()
         }
@@ -147,7 +137,7 @@ impl MyEguiApp {
             space_time_position: self.space_time_position,
             local_coordinates,
             time_elapsed,
-            container,
+            container_name: container.name,
             name,
             latitude,
             longitude,
@@ -170,32 +160,26 @@ impl eframe::App for MyEguiApp {
             }
         }
 
+        // Update all targets with current position !
         for i in self.targets.targets.iter_mut() {
             i.update(&self.database, self.position_history.get(self.index));
         }
 
         // Display self position
-        self.position.update(&self.database);
         self.position.display(
             ctx,
-            &self.database,
+            &mut self.database,
             &mut self.index,
             &mut self.position_history,
             &mut self.targets,
             &mut self.paths
         );
 
-        // Display targets & target selector
-        self.targets
-            .display(ctx, &mut self.index, &mut self.position_history);
+        // Display targets
+        self.targets.display(ctx, &mut self.index, &mut self.position_history);
 
         // Display Map
-        self.map
-            .display(ctx, &mut self.position_history, &self.targets);
+        self.map.display(ctx, &mut self.position_history, &self.targets);
 
-        // Update DB from added Poi
-        self.database = self.position.database.clone();
-
-        // self.position_history.append(&mut self.position.addition); TODO move to display position Top
     }
 }

@@ -3,12 +3,6 @@ use std::{collections::HashMap, f64::consts::PI};
 
 #[derive(Clone, Default)]
 pub struct WidgetTopPosition {
-    pub addition: Vec<ProcessedPosition>,
-
-    // POI exporter
-    pub database: HashMap<String, Container>,
-    pub name: String,
-
     // History
     pub history_name: String,
 
@@ -19,8 +13,6 @@ pub struct WidgetTopPosition {
 
 #[derive(Default)]
 pub struct WidgetTargets {
-    // pub target_container: Container,
-    // pub target_poi: Poi,
     pub targets: Vec<WidgetTarget>,
 }
 
@@ -40,82 +32,6 @@ pub struct WidgetTarget {
 pub struct WidgetMap {
     // Nothing for now
     // Futur: Map parameters : Container selector, 2D / 3D, height map, biome
-}
-
-impl WidgetTopPosition {
-    // pub fn new() -> Self {
-    //     Self {
-    //         ..Default::default()
-    //     }
-    // }
-
-    pub fn update(&mut self, database: &HashMap<String, Container>) {
-        self.database = database.clone();
-
-        // self.space_time_position = *space_time_position;
-        // if self.position_history.is_empty() {
-        //     return;
-        // };
-        //
-        // // self.timestamp = self.position_history[self.index].space_time_position.timestamp;
-        //
-        // self.position_history[self.index]
-        //     .space_time_position
-        //     .coordinates;
-    }
-
-    // TODO move r/w files to iolib
-    // pub fn save_current_position(&mut self) {
-    //     let mut custom_pois: HashMap<String, Poi>;
-    //     // Open Custom Poi file
-    //     if let Ok(file) = fs::File::open("CustomPoi.json") {
-    //         custom_pois = serde_json::from_reader(file).expect("file should be proper JSON");
-    //     } else {
-    //         println!("No file");
-    //         custom_pois = HashMap::new();
-    //     };
-    //
-    //     // Search for existing Poi with this name
-    //     if custom_pois.contains_key(&self.name) {
-    //         println!("Poi already exist, default override")
-    //     }
-    //
-    //     let new_poi = if (self.position.container.name == "Space")
-    //         | (self.position.container.name.is_empty())
-    //     {
-    //         Poi {
-    //             name: self.name.clone(),
-    //             container: "Space".to_string(),
-    //             coordinates: self.position
-    //                 .space_time_position
-    //                 .coordinates,
-    //             quaternions: None,
-    //             marker: None,
-    //         }
-    //     } else {
-    //         Poi {
-    //             name: self.name.clone(),
-    //             container: self.position.container.name.clone(),
-    //             coordinates: self.position.local_coordinates,
-    //             quaternions: None,
-    //             marker: None,
-    //         }
-    //     };
-    //     // Add to set
-    //     custom_pois.insert(self.name.clone(), new_poi.clone());
-    //
-    //     // Add to database
-    //     self.database
-    //         .get_mut(&new_poi.container)
-    //         .unwrap()
-    //         .poi
-    //         .insert(self.name.clone(), new_poi);
-    //
-    //     // Write files
-    //     let mut file = std::fs::File::create("CustomPoi.json").expect("This should work");
-    //     serde_json::to_writer_pretty(&mut file, &custom_pois)
-    //         .expect("Fail to write cutom poi json");
-    // }
 }
 
 impl WidgetTargets {
@@ -166,7 +82,7 @@ impl WidgetTarget {
                 .rotate(target_rotation_state_in_degrees.to_radians());
 
             // #---------------------------------------------------Distance to target----------------------------------------------------------
-            self.delta_distance = if complete_position.container.name == self.target.container {
+            self.delta_distance = if complete_position.container_name == self.target.container {
                 self.target.coordinates - complete_position.local_coordinates
             } else {
                 target_rotated_coordinates + target_container.coordinates

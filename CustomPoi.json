@@ -8,7 +8,10 @@
       "z": 210.614307494
     },
     "quaternions": null,
-    "marker": null
+    "marker": null,
+    "latitude": null,
+    "longitude": null,
+    "altitude": null
   },
   "BetterBennyHenge": {
     "name": "BetterBennyHenge",
@@ -19,6 +22,9 @@
       "z": -1.813837507
     },
     "quaternions": null,
-    "marker": null
+    "marker": null,
+    "latitude": null,
+    "longitude": null,
+    "altitude": null
   }
 }

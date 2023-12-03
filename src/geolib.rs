@@ -14,7 +14,7 @@ pub struct ProcessedPosition {
     pub space_time_position: SpaceTimePosition,
     pub local_coordinates: Vec3d,
     pub time_elapsed: f64,
-    pub container: Container,
+    pub container_name: String,
     pub name: String,
     pub latitude: f64,
     pub longitude: f64,

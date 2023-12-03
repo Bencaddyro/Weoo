@@ -1,10 +1,10 @@
 use crate::{
     geolib::{Container, ProcessedPosition},
-    iolib::{import_history, save_history},
+    iolib::{import_history, save_history, save_to_poi},
     mainlib::{WidgetMap, WidgetTarget, WidgetTargets, WidgetTopPosition},
 };
 use egui::{
-    Align, Color32, ComboBox, Context, Grid, Layout, Pos2, Separator, TextEdit, TopBottomPanel,
+    Color32, ComboBox, Context, Grid, Pos2, TextEdit, TopBottomPanel,
 };
 use egui_plot::{Line, Plot, Points};
 use std::{collections::HashMap, f64::consts::PI};
@@ -18,7 +18,7 @@ pub fn pretty(a: f64) -> String {
     format!("{degrees}° {minutes}’ {seconds}”")
 }
 
-// ui.label("Debug:");
+// ui.label("Debug:"); TODO Debug feature
 // ui.add(egui::TextEdit::multiline(&mut format!("Timestamp: {}\nCoordinates: x:{} y:{} z:{}",
 //                                     position.space_time_position.timestamp,
 //                                     position.space_time_position.coordinates.x,
@@ -31,7 +31,7 @@ impl WidgetTopPosition {
     pub fn display(
         &mut self,
         ctx: &Context,
-        database: &HashMap<String, Container>,
+        database: &mut HashMap<String, Container>,
         index: &mut usize,
         position_history: &mut Vec<ProcessedPosition>,
         targets: &mut WidgetTargets,
@@ -43,7 +43,7 @@ impl WidgetTopPosition {
             // ui.columns(5, |columns| {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
-                    // let ui = &mut columns[0];
+
                     // Current position
                     ui.horizontal(|ui| {
                         ui.heading("Self Position");
@@ -65,7 +65,7 @@ impl WidgetTopPosition {
                             ui.label(format!("{}", position.space_time_position.coordinates.z));
                             ui.end_row();
                             ui.label("Container:");
-                            ui.label(position.container.name.to_string());
+                            ui.label(position.container_name.clone());
                             ui.end_row();
                             ui.label("Latitute:");
                             ui.label(pretty(position.latitude));
@@ -112,7 +112,16 @@ impl WidgetTopPosition {
                                 );
 
                                 if ui.button("Save as POI").clicked() {
-                                    // self.save_current_position();
+
+                                    let new_poi = save_to_poi(position);
+                                    // Add to database
+                                    database
+                                        .get_mut(&new_poi.container)
+                                        .unwrap()
+                                        .poi
+                                        .insert(new_poi.name.clone(), new_poi);
+
+
                                 };
 
                                 ui.end_row();
@@ -187,7 +196,6 @@ impl WidgetTopPosition {
                         {
                             targets.targets.push(
                                 // TODO avoid duplicate
-                                // format!("{} - {}", self.target_container.name, self.target_poi.name),
                                 WidgetTarget::new(self.target_poi.clone(), database),
                             );
                         };
@@ -248,7 +256,7 @@ impl WidgetTargets {
                 position_history.remove(i);
             }
 
-            // clamp index cause deletion
+            // clamp index if deletion
             let len = if position_history.is_empty() {
                 0
             } else {
@@ -256,13 +264,6 @@ impl WidgetTargets {
             };
             *index = (*index).min(len);
 
-            // Remove hidden targets
-            // self.targets.retain(|_, v| v.open);
-            // Display targets windows
-            // for target in &mut self.targets.values_mut() {
-            //     target.update(database, position);
-            //     target.display(ctx);
-            // }
         });
     }
 }
@@ -330,15 +331,12 @@ impl WidgetMap {
                 })
                 .show(ui, |plot_ui| {
                     for p in &targets.targets {
-                        // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
-
                         let c = [p.target.longitude.unwrap(), p.target.latitude.unwrap()];
                         plot_ui.points(Points::new(c).name(p.target.name.clone()).radius(3.0));
                     }
                     let mut path = Vec::new();
 
                     for p in position_history {
-                        // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
                         let c = [
                             p.local_coordinates.longitude(),
                             p.local_coordinates.latitude(),
