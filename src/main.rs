@@ -6,6 +6,7 @@ use crate::{
 };
 use chrono::prelude::*;
 use eframe::egui;
+use egui::Color32;
 use geolib::{get_current_container, ProcessedPosition, SpaceTimePosition};
 use mainlib::{WidgetMap, WidgetTarget, WidgetTargets, WidgetTopPosition};
 use once_cell::sync::Lazy;
@@ -17,7 +18,6 @@ mod guilib;
 mod iolib;
 mod mainlib;
 
-// Coordinates: x:-17068754905.863510 y:-2399480232.5053227 z:-20642.813381
 // Somewhere on Daymar
 // Coordinates: x:-18930379393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930499393.98 y:-2610297380.75 z:210614.307494
@@ -47,8 +47,7 @@ struct MyEguiApp {
     index: usize,
     position_history: Vec<ProcessedPosition>,
 
-    paths: HashMap<String, Vec<ProcessedPosition>>,
-
+    paths: HashMap<String, (Color32, Vec<ProcessedPosition>)>,
 
     // Gui component
     position: WidgetTopPosition,
@@ -172,14 +171,19 @@ impl eframe::App for MyEguiApp {
             &mut self.index,
             &mut self.position_history,
             &mut self.targets,
-            &mut self.paths
+            &mut self.paths,
         );
 
         // Display targets
-        self.targets.display(ctx, &mut self.index, &mut self.position_history);
+        self.targets.display(
+            ctx,
+            &mut self.index,
+            &mut self.position_history,
+            &mut self.paths,
+        );
 
         // Display Map
-        self.map.display(ctx, &mut self.position_history, &self.targets);
-
+        self.map
+            .display(ctx, &mut self.position_history, &self.targets, &self.paths);
     }
 }

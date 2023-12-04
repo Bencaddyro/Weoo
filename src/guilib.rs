@@ -3,9 +3,7 @@ use crate::{
     iolib::{import_history, save_history, save_to_poi},
     mainlib::{WidgetMap, WidgetTarget, WidgetTargets, WidgetTopPosition},
 };
-use egui::{
-    Color32, ComboBox, Context, Grid, Pos2, TextEdit, TopBottomPanel,
-};
+use egui::{Color32, ComboBox, Context, Grid, Pos2, TextEdit, TopBottomPanel};
 use egui_plot::{Line, Plot, Points};
 use std::{collections::HashMap, f64::consts::PI};
 
@@ -17,7 +15,7 @@ pub fn pretty(a: f64) -> String {
         .abs();
     format!("{degrees}° {minutes}’ {seconds}”")
 }
-
+use rand::Rng;
 // ui.label("Debug:"); TODO Debug feature
 // ui.add(egui::TextEdit::multiline(&mut format!("Timestamp: {}\nCoordinates: x:{} y:{} z:{}",
 //                                     position.space_time_position.timestamp,
@@ -35,7 +33,7 @@ impl WidgetTopPosition {
         index: &mut usize,
         position_history: &mut Vec<ProcessedPosition>,
         targets: &mut WidgetTargets,
-        paths: &mut HashMap<String, Vec<ProcessedPosition>>,
+        paths: &mut HashMap<String, (Color32, Vec<ProcessedPosition>)>,
     ) {
         let len = position_history.len();
 
@@ -43,7 +41,6 @@ impl WidgetTopPosition {
             // ui.columns(5, |columns| {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
-
                     // Current position
                     ui.horizontal(|ui| {
                         ui.heading("Self Position");
@@ -82,73 +79,75 @@ impl WidgetTopPosition {
                     }
                 });
 
-
                 ui.separator();
                 // History
 
-                    ui.vertical(|ui| {
-                        let mut eviction = false;
-                        ui.heading("Path History");
+                ui.vertical(|ui| {
+                    let mut eviction = false;
+                    ui.heading("Path History");
 
-                        if let Some(position) = position_history.get_mut(*index) {
-                            ui.horizontal(|ui| {
-                                if ui.button("❌").clicked() {
-                                    eviction = true;
-                                };
-                                if ui.button("⏴").clicked() & (*index > 0) {
-                                    *index -= 1;
-                                };
-                                if ui.button("⏵").clicked() & (*index + 1 < len) {
-                                    *index += 1;
-                                };
-
-                                ui.heading(format!("{}/{}:", *index + 1, len,));
-
-                                ui.heading(position.name.to_string());
-                            });
-                            ui.horizontal(|ui| {
-                                ui.add(
-                                    TextEdit::singleline(&mut position.name).hint_text("No_name"),
-                                );
-
-                                if ui.button("Save as POI").clicked() {
-
-                                    let new_poi = save_to_poi(position);
-                                    // Add to database
-                                    database
-                                        .get_mut(&new_poi.container)
-                                        .unwrap()
-                                        .poi
-                                        .insert(new_poi.name.clone(), new_poi);
-
-
-                                };
-
-                                ui.end_row();
-                            });
-                        } else {
-                            ui.heading("No Position 😕");
-                        };
-                        if eviction {
-                            position_history.remove(*index);
-                        }
-
-                        // ui.separator(); // BUG fill entire right panel
-                        ui.label("---------------------------");
-                        ui.vertical(|ui| {
-                            ui.heading("Path I/O");
-
-                            if ui.button("Export Path").clicked() {
-                                save_history(&self.history_name, position_history);
+                    if let Some(position) = position_history.get_mut(*index) {
+                        ui.horizontal(|ui| {
+                            if ui.button("❌").clicked() {
+                                eviction = true;
                             };
-                            if ui.button("Import Path").clicked() {
-                                paths.insert(self.history_name.to_owned(), import_history(&self.history_name));
+                            if ui.button("⏴").clicked() & (*index > 0) {
+                                *index -= 1;
                             };
-                            ui.add(
-                                TextEdit::singleline(&mut self.history_name).hint_text("Path Name"),
-                            );
+                            if ui.button("⏵").clicked() & (*index + 1 < len) {
+                                *index += 1;
+                            };
+
+                            ui.heading(format!("{}/{}:", *index + 1, len,));
+
+                            ui.heading(position.name.to_string());
                         });
+                        ui.horizontal(|ui| {
+                            ui.add(TextEdit::singleline(&mut position.name).hint_text("No_name"));
+
+                            if ui.button("Save as POI").clicked() {
+                                let new_poi = save_to_poi(position);
+                                // Add to database
+                                database
+                                    .get_mut(&new_poi.container)
+                                    .unwrap()
+                                    .poi
+                                    .insert(new_poi.name.clone(), new_poi);
+                            };
+
+                            ui.end_row();
+                        });
+                    } else {
+                        ui.heading("No Position 😕");
+                    };
+                    if eviction {
+                        position_history.remove(*index);
+                    }
+
+                    // ui.separator(); // BUG fill entire right panel
+                    ui.label("---------------------------");
+                    ui.vertical(|ui| {
+                        ui.heading("Path I/O");
+
+                        if ui.button("Export Path").clicked() {
+                            save_history(&self.history_name, position_history);
+                        };
+                        if ui.button("Import Path").clicked() {
+                            paths.insert(
+                                self.history_name.to_owned(),
+                                (
+                                    Color32::from_rgb(
+                                        rand::thread_rng().gen(),
+                                        rand::thread_rng().gen(),
+                                        rand::thread_rng().gen(),
+                                    ),
+                                    import_history(&self.history_name),
+                                ),
+                            );
+                        };
+                        ui.add(TextEdit::singleline(&mut self.history_name).hint_text("Path Name"));
                     });
+                });
 
                 ui.separator();
                 // Target selection
@@ -214,6 +213,7 @@ impl WidgetTargets {
         ctx: &egui::Context,
         index: &mut usize,
         position_history: &mut Vec<ProcessedPosition>,
+        paths: &mut HashMap<String, (Color32, Vec<ProcessedPosition>)>,
     ) {
         egui::SidePanel::left("my_left_panel").show(ctx, |ui| {
             ui.heading("Targets");
@@ -264,6 +264,26 @@ impl WidgetTargets {
             };
             *index = (*index).min(len);
 
+            ui.heading("Paths");
+
+            let mut eviction_path = None;
+
+            for (k, (_c, v)) in paths.clone().iter() {
+                ui.horizontal(|ui| {
+                    if ui.button("❌").clicked() {
+                        eviction_path = Some(k.clone());
+                    };
+                    ui.heading(format!("{k} path"));
+                });
+
+                for p in v {
+                    ui.label(p.name.clone());
+                }
+            }
+
+            if let Some(k) = eviction_path {
+                paths.remove(&k);
+            }
         });
     }
 }
@@ -304,6 +324,7 @@ impl WidgetMap {
         ctx: &egui::Context,
         position_history: &mut Vec<ProcessedPosition>,
         targets: &WidgetTargets,
+        paths: &HashMap<String, (Color32, Vec<ProcessedPosition>)>,
     ) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Map");
@@ -334,8 +355,9 @@ impl WidgetMap {
                         let c = [p.target.longitude.unwrap(), p.target.latitude.unwrap()];
                         plot_ui.points(Points::new(c).name(p.target.name.clone()).radius(3.0));
                     }
-                    let mut path = Vec::new();
 
+                    // Construct & display history
+                    let mut path = Vec::new();
                     for p in position_history {
                         let c = [
                             p.local_coordinates.longitude(),
@@ -349,13 +371,31 @@ impl WidgetMap {
                                 .color(Color32::DARK_GRAY),
                         );
                     }
-
                     plot_ui.line(
                         Line::new(path)
                             .name("Self")
                             .width(1.5)
                             .color(Color32::DARK_GRAY),
                     );
+
+                    //Now for all path !
+                    for (k, (color, v)) in paths {
+                        let mut path = Vec::new();
+                        for p in v {
+                            let c = [
+                                p.local_coordinates.longitude(),
+                                p.local_coordinates.latitude(),
+                            ];
+                            path.push(c);
+                            plot_ui.points(
+                                Points::new(c)
+                                    .name(p.name.clone())
+                                    .radius(3.0)
+                                    .color(*color),
+                            );
+                        }
+                        plot_ui.line(Line::new(path).name(k).width(1.5).color(*color));
+                    }
                 });
         });
     }
