@@ -1,8 +1,9 @@
 use crate::{
-    geolib::Container,
-    mainlib::{WidgetMap, WidgetPosition, WidgetTarget, WidgetTargetSelection},
+    geolib::{Container, ProcessedPosition},
+    iolib::{import_history, save_history, save_to_poi},
+    mainlib::{WidgetMap, WidgetTarget, WidgetTargets, WidgetTopPosition},
 };
-use egui::{Align, Color32, Layout, Pos2};
+use egui::{Color32, ComboBox, Context, Grid, Pos2, TextEdit, TopBottomPanel};
 use egui_plot::{Line, Plot, Points};
 use std::{collections::HashMap, f64::consts::PI};
 
@@ -14,130 +15,276 @@ pub fn pretty(a: f64) -> String {
         .abs();
     format!("{degrees}° {minutes}’ {seconds}”")
 }
+use rand::Rng;
+// ui.label("Debug:"); TODO Debug feature
+// ui.add(egui::TextEdit::multiline(&mut format!("Timestamp: {}\nCoordinates: x:{} y:{} z:{}",
+//                                     position.space_time_position.timestamp,
+//                                     position.space_time_position.coordinates.x,
+//                                     position.space_time_position.coordinates.y,
+//                                     position.space_time_position.coordinates.z,
+//                                             )));
+// ui.end_row();
 
-impl WidgetPosition {
-    pub fn display(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            egui::Grid::new("MainTopGrid").show(ui, |ui| {
-                egui::Grid::new("SelfPosition").show(ui, |ui| {
-                    ui.heading("Self Position");
-                    ui.spinner();
-                    ui.end_row();
+impl WidgetTopPosition {
+    pub fn display(
+        &mut self,
+        ctx: &Context,
+        database: &mut HashMap<String, Container>,
+        index: &mut usize,
+        position_history: &mut Vec<ProcessedPosition>,
+        targets: &mut WidgetTargets,
+        paths: &mut HashMap<String, (Color32, Vec<ProcessedPosition>)>,
+    ) {
+        let len = position_history.len();
 
-                    ui.label("Timestamp:");
-                    ui.label(format!("{}", self.timestamp));
-                    ui.end_row();
-                    ui.label("Coordinates:");
-                    ui.label(format!(
-                        "x:{} y:{} z:{}",
-                        self.absolute_coordinates.x,
-                        self.absolute_coordinates.y,
-                        self.absolute_coordinates.z
-                    ));
-                    ui.end_row();
-                    ui.label("Container:");
-                    ui.label(self.container.name.to_string());
-                    ui.end_row();
+        TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            // ui.columns(5, |columns| {
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    // Current position
+                    ui.horizontal(|ui| {
+                        ui.heading("Self Position");
+                        ui.spinner();
+                    });
 
-                    ui.label("Latitute:");
-                    ui.label(pretty(self.latitude));
-                    ui.end_row();
-                    ui.label("Longitude:");
-                    ui.label(pretty(self.longitude));
-                    ui.end_row();
-                    ui.label("Altitude:");
-                    ui.label(format!("{:.3}km", self.altitude));
-                    ui.end_row();
+                    if let Some(position) = position_history.get_mut(*index) {
+                        egui::Grid::new("SelfPosition").show(ui, |ui| {
+                            ui.label("Timestamp:");
+                            ui.label(format!("{}", position.space_time_position.timestamp));
+                            ui.end_row();
+                            ui.label("Coordinates_X:");
+                            ui.label(format!("{}", position.space_time_position.coordinates.x));
+                            ui.end_row();
+                            ui.label("Coordinates_Y:");
+                            ui.label(format!("{}", position.space_time_position.coordinates.y));
+                            ui.end_row();
+                            ui.label("Coordinates_Z:");
+                            ui.label(format!("{}", position.space_time_position.coordinates.z));
+                            ui.end_row();
+                            ui.label("Container:");
+                            ui.label(position.container_name.clone());
+                            ui.end_row();
+                            ui.label("Latitute:");
+                            ui.label(pretty(position.latitude));
+                            ui.end_row();
+                            ui.label("Longitude:");
+                            ui.label(pretty(position.longitude));
+                            ui.end_row();
+                            ui.label("Altitude:");
+                            ui.label(format!("{:.3}km", position.altitude));
+                            ui.end_row();
+                        });
+                    } else {
+                        ui.heading("No Position 😕");
+                    }
                 });
 
-                ui.add(egui::Separator::default().vertical());
-                ui.horizontal(|ui| {
-                    if ui.button("⏴").clicked() & (self.index > 0) {
-                        self.index -= 1;
-                    };
-                    if ui.button("⏵").clicked()
-                        & !self.position_history.is_empty()
-                        & (self.index + 1 < self.position_history.len())
-                    {
-                        self.index += 1;
-                    };
-                    ui.heading(format!("{}", self.index + 1));
+                ui.separator();
+                // History
 
-                    ui.add(egui::TextEdit::singleline(&mut self.name).hint_text("Custom Poi"));
+                ui.vertical(|ui| {
+                    let mut eviction = false;
+                    ui.heading("Path History");
 
-                    if ui.button("Save").clicked() {
-                        self.save_current_position();
+                    if let Some(position) = position_history.get_mut(*index) {
+                        ui.horizontal(|ui| {
+                            if ui.button("❌").clicked() {
+                                eviction = true;
+                            };
+                            if ui.button("⏴").clicked() & (*index > 0) {
+                                *index -= 1;
+                            };
+                            if ui.button("⏵").clicked() & (*index + 1 < len) {
+                                *index += 1;
+                            };
+
+                            ui.heading(format!("{}/{}:", *index + 1, len,));
+
+                            ui.heading(position.name.to_string());
+                        });
+                        ui.horizontal(|ui| {
+                            ui.add(TextEdit::singleline(&mut position.name).hint_text("No_name"));
+
+                            if ui.button("Save as POI").clicked() {
+                                let new_poi = save_to_poi(position);
+                                // Add to database
+                                database
+                                    .get_mut(&new_poi.container)
+                                    .unwrap()
+                                    .poi
+                                    .insert(new_poi.name.clone(), new_poi);
+                            };
+
+                            ui.end_row();
+                        });
+                    } else {
+                        ui.heading("No Position 😕");
                     };
+                    if eviction {
+                        position_history.remove(*index);
+                    }
+
+                    // ui.separator(); // BUG fill entire right panel
+                    ui.label("---------------------------");
+                    ui.vertical(|ui| {
+                        ui.heading("Path I/O");
+
+                        if ui.button("Export Path").clicked() {
+                            save_history(&self.history_name, position_history);
+                        };
+                        if ui.button("Import Path").clicked() {
+                            paths.insert(
+                                self.history_name.to_owned(),
+                                (
+                                    Color32::from_rgb(
+                                        rand::thread_rng().gen(),
+                                        rand::thread_rng().gen(),
+                                        rand::thread_rng().gen(),
+                                    ),
+                                    import_history(&self.history_name),
+                                ),
+                            );
+                        };
+                        ui.add(TextEdit::singleline(&mut self.history_name).hint_text("Path Name"));
+                    });
                 });
-                ui.end_row();
+
+                ui.separator();
+                // Target selection
+
+                ui.vertical(|ui| {
+                    ui.heading("Target Selector");
+                    Grid::new("TargetSelector").show(ui, |ui| {
+                        ui.label("Container");
+                        ComboBox::from_id_source("Container")
+                            .selected_text(self.target_container.name.clone())
+                            .show_ui(ui, |ui| {
+                                for container in database.values() {
+                                    ui.selectable_value(
+                                        &mut self.target_container,
+                                        container.clone(),
+                                        container.name.clone(),
+                                    );
+                                }
+                            });
+                        ui.end_row();
+
+                        ui.label("Poi");
+                        ComboBox::from_id_source("Poi")
+                            .selected_text(self.target_poi.name.clone())
+                            .show_ui(ui, |ui| {
+                                if database.contains_key(&self.target_container.name) {
+                                    for poi in database
+                                        .get(&self.target_container.name)
+                                        .unwrap()
+                                        .poi
+                                        .values()
+                                    {
+                                        ui.selectable_value(
+                                            &mut self.target_poi,
+                                            poi.clone(),
+                                            poi.name.clone(),
+                                        );
+                                    }
+                                }
+                            });
+                        ui.end_row();
+
+                        if ui.button("Add Target").clicked()
+                            & database.contains_key(&self.target_poi.container)
+                        {
+                            targets.targets.push(
+                                // TODO avoid duplicate
+                                WidgetTarget::new(self.target_poi.clone(), database),
+                            );
+                        };
+
+                        ui.end_row();
+                    });
+                });
             });
         });
     }
 }
 
-impl WidgetTargetSelection {
+impl WidgetTargets {
     pub fn display(
         &mut self,
         ctx: &egui::Context,
-        database: &HashMap<String, Container>,
-        // elapsed_time: f64,
-        position: &WidgetPosition,
+        index: &mut usize,
+        position_history: &mut Vec<ProcessedPosition>,
+        paths: &mut HashMap<String, (Color32, Vec<ProcessedPosition>)>,
     ) {
-        egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
-            ui.label("Select Target");
+        egui::SidePanel::left("my_left_panel").show(ctx, |ui| {
+            ui.heading("Targets");
 
-            egui::Grid::new("MainGrid").show(ui, |ui| {
-                egui::ComboBox::from_label("Container")
-                    .selected_text(self.target_container.name.clone())
-                    .show_ui(ui, |ui| {
-                        for container in database.values() {
-                            ui.selectable_value(
-                                &mut self.target_container,
-                                container.clone(),
-                                container.name.clone(),
-                            );
-                        }
-                    });
+            let mut eviction = Vec::new();
+            for (i, e) in self.targets.iter_mut().enumerate() {
+                ui.horizontal(|ui| {
+                    if ui.button("❌").clicked() {
+                        eviction.push(i);
+                    };
+                    // if ui.button("⏶").clicked() { };
+                    // if ui.button("⏷").clicked() { };
 
-                egui::ComboBox::from_label("Poi")
-                    .selected_text(self.target_poi.name.clone())
-                    .show_ui(ui, |ui| {
-                        if database.contains_key(&self.target_container.name) {
-                            for poi in database
-                                .get(&self.target_container.name)
-                                .unwrap()
-                                .poi
-                                .values()
-                            {
-                                ui.selectable_value(
-                                    &mut self.target_poi,
-                                    poi.clone(),
-                                    poi.name.clone(),
-                                );
-                            }
-                        }
-                    });
+                    ui.label(&e.target.name);
+                });
 
-                if ui.button("Add Target").clicked()
-                    & database.contains_key(&self.target_poi.container)
-                {
-                    self.targets.insert(
-                        format!("{} - {}", self.target_container.name, self.target_poi.name),
-                        WidgetTarget::new(self.target_poi.clone(), database),
-                    );
-                };
+                e.display(ctx);
+            }
+            for i in eviction {
+                self.targets.remove(i);
+            }
 
-                ui.end_row();
-            });
+            ui.heading("Self Positions");
+
+            let mut eviction = Vec::new();
+
+            for (i, p) in position_history.iter().enumerate() {
+                ui.horizontal(|ui| {
+                    if ui.button("❌").clicked() {
+                        eviction.push(i)
+                    };
+                    // if ui.button("⏶").clicked() { };
+                    // if ui.button("⏷").clicked() { };
+
+                    ui.label(p.name.clone());
+                });
+            }
+
+            for i in eviction {
+                position_history.remove(i);
+            }
+
+            // clamp index if deletion
+            let len = if position_history.is_empty() {
+                0
+            } else {
+                position_history.len() - 1
+            };
+            *index = (*index).min(len);
+
+            ui.heading("Paths");
+
+            let mut eviction_path = None;
+
+            for (k, (_c, v)) in paths.clone().iter() {
+                ui.horizontal(|ui| {
+                    if ui.button("❌").clicked() {
+                        eviction_path = Some(k.clone());
+                    };
+                    ui.heading(format!("{k} path"));
+                });
+
+                for p in v {
+                    ui.label(p.name.clone());
+                }
+            }
+
+            if let Some(k) = eviction_path {
+                paths.remove(&k);
+            }
         });
-
-        // Remove hidden targets
-        self.targets.retain(|_, v| v.open);
-        // Display targets windows
-        for target in &mut self.targets.values_mut() {
-            target.update(database, position);
-            target.display(ctx);
-        }
     }
 }
 
@@ -175,142 +322,81 @@ impl WidgetMap {
     pub fn display(
         &mut self,
         ctx: &egui::Context,
-        database: &HashMap<String, Container>,
-        // position: &WidgetPosition,
+        position_history: &mut Vec<ProcessedPosition>,
+        targets: &WidgetTargets,
+        paths: &HashMap<String, (Color32, Vec<ProcessedPosition>)>,
     ) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.label("Select Target");
-
-            egui::Grid::new("MainGrid").show(ui, |ui| {
-                egui::ComboBox::from_label("Container")
-                    .selected_text(self.target_container.name.clone())
-                    .show_ui(ui, |ui| {
-                        for container in database.values() {
-                            ui.selectable_value(
-                                &mut self.target_container,
-                                container.clone(),
-                                container.name.clone(),
-                            );
-                        }
-                    });
-
-                egui::ComboBox::from_label("Poi")
-                    .selected_text(self.target_poi.name.clone())
-                    .show_ui(ui, |ui| {
-                        for poi in database
-                            .get(&self.target_container.name)
-                            .unwrap()
-                            .poi
-                            .values()
-                        {
-                            ui.selectable_value(
-                                &mut self.target_poi,
-                                poi.clone(),
-                                poi.name.clone(),
-                            );
-                        }
-                    });
-
-                if ui.button("Add Target").clicked()
-                    & database.contains_key(&self.target_poi.container)
-                {
-                    self.targets.push((
-                        self.target_poi.name.clone(),
-                        [
-                            self.target_poi.coordinates.longitude(),
-                            self.target_poi.coordinates.latitude(),
-                        ],
-                    ));
-                };
-
-                ui.end_row();
-            });
-            ui.separator();
             ui.heading("Map");
 
-            ui.with_layout(Layout::left_to_right(Align::TOP), |ui| {
-                ui.vertical(|ui| {
-                    ui.heading("Targets");
+            // plot satelite screen based on coordinates found on lidar
+            // TODO : how to scale screen shot ? 1920*1080 = q lat + j long -> mercator deformation :explosion_head:
 
-                    for (i, (name, _)) in self.targets.iter().enumerate() {
-                        ui.horizontal(|ui| {
-                            if ui.button("❌").clicked() {
-                                self.eviction.push(i)
-                            };
-                            // if ui.button("⏶").clicked() { };
-                            // if ui.button("⏷").clicked() { };
+            // screenshot : head to 0° / pitch 0°
+            // Clever way : get current heading by diff position betweenscreenshot
 
-                            ui.label(name);
-                        });
+            Plot::new("my_plot")
+                // .min_size(Vec2::new(800.0,500.0))
+                // .view_aspect(2.0)
+                // .data_aspect(2.0)
+                .include_x(-PI)
+                .include_x(PI)
+                .include_y(PI / 2.0)
+                .include_y(-PI / 2.0)
+                .label_formatter(|name, value| {
+                    if !name.is_empty() {
+                        format!("{name}\n{}\n{}", pretty(value.y), pretty(value.x))
+                    } else {
+                        "".to_owned()
                     }
-                    ui.heading("Self");
-                    for (i, (name, _)) in self.travel.iter().enumerate() {
-                        ui.horizontal(|ui| {
-                            if ui.button("❌").clicked() {
-                                self.eviction_self.push(i)
-                            };
-                            // if ui.button("⏶").clicked() { };
-                            // if ui.button("⏷").clicked() { };
-
-                            ui.label(name);
-                        });
+                })
+                .show(ui, |plot_ui| {
+                    for p in &targets.targets {
+                        let c = [p.target.longitude.unwrap(), p.target.latitude.unwrap()];
+                        plot_ui.points(Points::new(c).name(p.target.name.clone()).radius(3.0));
                     }
-                });
 
-                // Trace of different points based on history module ?
+                    // Construct & display history
+                    let mut path = Vec::new();
+                    for p in position_history {
+                        let c = [
+                            p.local_coordinates.longitude(),
+                            p.local_coordinates.latitude(),
+                        ];
+                        path.push(c);
+                        plot_ui.points(
+                            Points::new(c)
+                                .name(p.name.clone())
+                                .radius(3.0)
+                                .color(Color32::DARK_GRAY),
+                        );
+                    }
+                    plot_ui.line(
+                        Line::new(path)
+                            .name("Self")
+                            .width(1.5)
+                            .color(Color32::DARK_GRAY),
+                    );
 
-                // plot satelite screen based on coordinates found on lidar
-
-                // TODO : how to scale screen shot ? 1920*1080 = q lat + j long -> mercator deformation :explosion_head:
-
-                // screenshot : head to 0° / pitch 0°
-                // Clever way : get current heading by diff position betweenscreenshot
-
-                Plot::new("my_plot")
-                    // .min_size(Vec2::new(800.0,500.0))
-                    // .view_aspect(2.0)
-                    // .data_aspect(2.0)
-                    .include_x(-PI)
-                    .include_x(PI)
-                    .include_y(PI / 2.0)
-                    .include_y(-PI / 2.0)
-                    .label_formatter(|name, value| {
-                        if !name.is_empty() {
-                            format!("{name}\n{}\n{}", pretty(value.y), pretty(value.x))
-                        } else {
-                            "".to_owned()
-                        }
-                    })
-                    .show(ui, |plot_ui| {
-                        for (name, p) in self.targets.iter() {
-                            // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
-                            let c = [p[0], p[1]];
-                            plot_ui.points(Points::new(c).name(name).radius(3.0));
-                        }
+                    //Now for all path !
+                    for (k, (color, v)) in paths {
                         let mut path = Vec::new();
-
-                        for (name, p) in self.travel.iter() {
-                            // let y = (PI / 4.0 + p[1].to_radians() / 2.0).tan().abs().ln();
-                            let c = [p[0], p[1]];
+                        for p in v {
+                            let c = [
+                                p.local_coordinates.longitude(),
+                                p.local_coordinates.latitude(),
+                            ];
                             path.push(c);
                             plot_ui.points(
                                 Points::new(c)
-                                    .name(name)
+                                    .name(p.name.clone())
                                     .radius(3.0)
-                                    .color(Color32::DARK_GRAY),
+                                    .color(*color),
                             );
                         }
-
-                        plot_ui.line(
-                            Line::new(path)
-                                .name("Self")
-                                .width(1.5)
-                                .color(Color32::DARK_GRAY),
-                        );
-
-                        // plot_ui.points(Points::new([position.local_coordinates.longitude(),position.local_coordinates.latitude()]).name("Position"));
-                    });
-            });
+                        plot_ui.line(Line::new(path).name(k).width(1.5).color(*color));
+                    }
+                });
         });
     }
 }

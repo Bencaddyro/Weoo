@@ -1,9 +1,9 @@
-use crate::geolib::{Container, Poi, SpaceTimePosition, Vec3d, Vec4d};
+use crate::geolib::{Container, Poi, ProcessedPosition, SpaceTimePosition, Vec3d, Vec4d};
 use arboard::Clipboard;
 use chrono::Utc;
 use regex::Regex;
 use std::collections::HashMap;
-use std::fs;
+use std::fs::{self, File};
 
 fn get_clipboard() -> String {
     let Ok(mut clipboard) = Clipboard::new() else {
@@ -51,14 +51,16 @@ pub fn load_database() -> HashMap<String, Container> {
                 serde_json::from_value(vv.get("POI").unwrap().to_owned()).unwrap();
 
             for e in ppoi.into_values() {
+                let coordinates = Vec3d {
+                    x: e.get("X").unwrap().as_f64().unwrap(),
+                    y: e.get("Y").unwrap().as_f64().unwrap(),
+                    z: e.get("Z").unwrap().as_f64().unwrap(),
+                };
+
                 let new_poi = Poi {
                     name: e.get("Name").unwrap().to_string().replace('"', ""),
                     container: e.get("Container").unwrap().to_string().replace('"', ""),
-                    coordinates: Vec3d {
-                        x: e.get("X").unwrap().as_f64().unwrap(),
-                        y: e.get("Y").unwrap().as_f64().unwrap(),
-                        z: e.get("Z").unwrap().as_f64().unwrap(),
-                    },
+                    coordinates,
                     quaternions: Some(Vec4d {
                         qw: e.get("qw").unwrap().as_f64().unwrap(),
                         qx: e.get("qx").unwrap().as_f64().unwrap(),
@@ -74,6 +76,10 @@ pub fn load_database() -> HashMap<String, Container> {
                             .parse()
                             .unwrap(),
                     ),
+
+                    latitude: Some(coordinates.latitude()),
+                    longitude: Some(coordinates.longitude()),
+                    altitude: None,
                 };
                 poi.insert(new_poi.name.clone(), new_poi);
             }
@@ -115,7 +121,7 @@ pub fn load_database() -> HashMap<String, Container> {
     }
 
     // CustomPoi.json
-    if let Ok(file) = fs::File::open("CustomPoi.json") {
+    if let Ok(file) = File::open("CustomPoi.json") {
         let json: HashMap<String, Poi> =
             serde_json::from_reader(file).expect("file should be proper JSON");
 
@@ -132,4 +138,70 @@ pub fn load_database() -> HashMap<String, Container> {
     }
 
     containers
+}
+
+pub fn save_history(name: &String, position_history: &Vec<ProcessedPosition>) {
+    let mut file = File::create(format!("{name}.json")).expect("This should work");
+    serde_json::to_writer_pretty(&mut file, &position_history)
+        .unwrap_or_else(|_| panic!("Fail to write {name}.json"))
+}
+
+pub fn import_history(name: &String) -> Vec<ProcessedPosition> {
+    if let Ok(file) = File::open(format!("{name}.json")) {
+        serde_json::from_reader(file).unwrap_or_else(|_| {
+            println!("Fail to parse {name}.json, incorrect format");
+            Vec::new()
+        })
+    } else {
+        println!("Fail to open {name}.json, no file");
+        Vec::new()
+    }
+}
+
+pub fn save_to_poi(position: &ProcessedPosition) -> Poi {
+    let mut custom_pois: HashMap<String, Poi>;
+    // Open Custom Poi file
+    if let Ok(file) = fs::File::open("CustomPoi.json") {
+        custom_pois = serde_json::from_reader(file).expect("file should be proper JSON");
+    } else {
+        println!("No file");
+        custom_pois = HashMap::new();
+    };
+
+    // Search for existing Poi with this name
+    if custom_pois.contains_key(&position.name) {
+        println!("Poi already exist, default override")
+    }
+
+    let new_poi = if (position.container_name == "Space") | (position.container_name.is_empty()) {
+        Poi {
+            name: position.name.clone(),
+            container: "Space".to_string(),
+            coordinates: position.space_time_position.coordinates,
+            quaternions: None,
+            marker: None,
+            latitude: Some(position.latitude),
+            longitude: Some(position.longitude),
+            altitude: Some(position.altitude),
+        }
+    } else {
+        Poi {
+            name: position.name.clone(),
+            container: position.container_name.clone(),
+            coordinates: position.local_coordinates,
+            quaternions: None,
+            marker: None,
+            latitude: Some(position.latitude),
+            longitude: Some(position.longitude),
+            altitude: Some(position.altitude),
+        }
+    };
+    // Add to set
+    custom_pois.insert(position.name.clone(), new_poi.clone());
+
+    // Write files
+    let mut file = std::fs::File::create("CustomPoi.json").expect("This should work");
+    serde_json::to_writer_pretty(&mut file, &custom_pois).expect("Fail to write cutom poi json");
+
+    new_poi
 }
