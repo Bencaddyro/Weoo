@@ -16,7 +16,7 @@ pub struct WidgetTargets {
     pub targets: Vec<WidgetTarget>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct WidgetTarget {
     pub open: bool,
     pub target: Poi,
@@ -95,8 +95,9 @@ impl WidgetTarget {
             // #----------------------------------------------------------Heading--------------------------------------------------------------
             // If planetary !
             self.heading = (complete_position
-                .space_time_position
-                .coordinates
+                // .space_time_position
+                // .coordinates
+                .local_coordinates
                 .loxodromie_to(self.target.coordinates)
                 + 2.0 * PI)
                 % (2.0 * PI);

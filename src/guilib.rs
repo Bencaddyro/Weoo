@@ -352,7 +352,9 @@ impl WidgetMap {
                 })
                 .show(ui, |plot_ui| {
                     for p in &targets.targets {
-                        let c = [p.target.longitude.unwrap(), p.target.latitude.unwrap()];
+                        println!("\n\n\n\n\n{p:?}");
+
+                        let c = [p.longitude, p.latitude];
                         plot_ui.points(Points::new(c).name(p.target.name.clone()).radius(3.0));
                     }
 
