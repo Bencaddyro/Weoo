@@ -1,13 +1,14 @@
 use crate::{
     geolib::{Container, Path},
     iolib::{import_history, save_history, save_to_poi},
-    mainlib::{WidgetMap, WidgetTarget, WidgetTargets, WidgetTopPosition, WidgetPath},
+    mainlib::{WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition},
 };
 use egui::{Color32, ComboBox, Context, Grid, Pos2, TextEdit, TopBottomPanel};
-use egui_plot::{Line, MarkerShape, Plot, Points};
+use egui_plot::{GridInput, GridMark, Line, MarkerShape, Plot, Points};
 use std::{
     collections::{BTreeMap, HashMap},
     f64::consts::PI,
+    ops::RangeInclusive,
 };
 
 pub fn pretty(a: f64) -> String {
@@ -17,6 +18,25 @@ pub fn pretty(a: f64) -> String {
         .trunc()
         .abs();
     format!("{degrees}° {minutes}’ {seconds}”")
+}
+
+pub fn legend(a: f64, b: usize, range: &RangeInclusive<f64>) -> String {
+    let degrees = a.to_degrees().trunc();
+    format!("{degrees}°")
+}
+
+pub fn grid(range: GridInput) -> Vec<GridMark> {
+    let mut mark = Vec::new();
+    let (a, b) = range.bounds;
+    let (a, b) = (a.to_degrees().trunc() as i64, b.to_degrees().trunc() as i64);
+    let aa = (a / 10) * 10;
+    for i in (aa..b).step_by(10) {
+        mark.push(GridMark {
+            value: (i as f64).to_radians(),
+            step_size: 25.0,
+        })
+    }
+    mark
 }
 
 pub fn borked_cig_heading(a: f64) -> String {
@@ -180,7 +200,8 @@ impl WidgetTopPosition {
                                         rand::thread_rng().gen(),
                                     ),
                                     history: import_history(&self.history_name),
-                                    shape: MarkerShape::Diamond,
+                                    shape: MarkerShape::Circle,
+                                    radius: 3.0,
                                 },
                             );
                         };
@@ -283,7 +304,6 @@ impl WidgetTargets {
 
             let mut eviction = Vec::new();
 
-
             for (i, p) in paths.get_mut("Self").unwrap().history.iter().enumerate() {
                 ui.horizontal(|ui| {
                     if ui.button("❌").clicked() {
@@ -319,22 +339,41 @@ impl WidgetTargets {
                             eviction_path = Some(k.clone());
                         };
                         if ui.button("🗺").clicked() {
-                            targets_path.insert(k.to_owned(), WidgetPath { open: true, index: 0, history: path.clone(), latitude: 0.0, longitude: 0.0, altitude: 0.0, distance: 0.0, heading: 0.0 } );
+                            targets_path.insert(
+                                k.to_owned(),
+                                WidgetPath {
+                                    open: true,
+                                    index: 0,
+                                    history: path.clone(),
+                                    latitude: 0.0,
+                                    longitude: 0.0,
+                                    altitude: 0.0,
+                                    distance: 0.0,
+                                    heading: 0.0,
+                                },
+                            );
                         };
 
                         ui.heading(k);
                         ui.color_edit_button_srgba(&mut path.color);
-                        ComboBox::from_id_source(path.name.to_string())
-                            .selected_text("")
-                            .show_ui(ui, |ui| {
-                                for marker in MarkerShape::all() {
-                                    ui.selectable_value(
-                                        &mut path.shape,
-                                        marker,
-                                        format!("{marker:?}"),
-                                    );
-                                }
-                            });
+
+                        ui.add(
+                            egui::DragValue::new(&mut path.radius)
+                                .speed(0.1)
+                                .clamp_range(0..=10),
+                        );
+
+                        // ComboBox::from_id_source(path.name.to_string())
+                        //     .selected_text("")
+                        //     .show_ui(ui, |ui| {
+                        //         for marker in MarkerShape::all() {
+                        //             ui.selectable_value(
+                        //                 &mut path.shape,
+                        //                 marker,
+                        //                 format!("{marker:?}"),
+                        //             );
+                        //         }
+                        //     });
                     });
 
                     for p in &path.history {
@@ -392,18 +431,18 @@ impl WidgetPath {
             .show(ctx, |ui| {
                 egui::Grid::new("MainGrid").show(ui, |ui| {
                     ui.horizontal(|ui| {
-if ui.button("⏴").clicked() & (self.index > 0) {
-                                self.index -= 1;
-                    };
-                    if ui.button("⏵").clicked() & (self.index + 1 < self.history.history.len()) {
-                                self.index += 1;
-                    };
-                    ui.heading(format!("{}/{}", self.index+1, self.history.history.len()));
-
+                        if ui.button("⏴").clicked() & (self.index > 0) {
+                            self.index -= 1;
+                        };
+                        if ui.button("⏵").clicked() & (self.index + 1 < self.history.history.len())
+                        {
+                            self.index += 1;
+                        };
+                        ui.heading(format!("{}/{}", self.index + 1, self.history.history.len()));
                     });
-                                        ui.heading(&current_point.name);
+                    ui.heading(&current_point.name);
 
-                                     ui.end_row();
+                    ui.end_row();
                     ui.label("Latitute:");
                     ui.label(pretty(current_point.latitude));
                     ui.end_row();
@@ -440,22 +479,29 @@ impl WidgetMap {
 
             Plot::new("my_plot")
                 // .min_size(Vec2::new(800.0,500.0))
-                .view_aspect(1.0)
-                // .data_aspect(2.0)
-                .include_x(-PI)
-                .include_x(PI)
-                .include_y(PI / 2.0)
-                .include_y(-PI / 2.0)
+                .data_aspect(1.0)
+                // .x_axis_formatter(legend)
+                // .x_grid_spacer(grid)
+                // .y_axis_formatter(legend)
+                // .y_grid_spacer(grid)
+                .include_x(-180)
+                .include_x(180)
+                .include_y(90)
+                .include_y(-90)
                 .label_formatter(|name, value| {
                     if !name.is_empty() {
-                        format!("{name}\n{}\n{}", pretty(value.y), pretty(value.x))
+                        format!(
+                            "{name}\n{}\n{}",
+                            pretty(value.y.to_radians()),
+                            pretty(value.x.to_radians())
+                        )
                     } else {
                         "".to_owned()
                     }
                 })
                 .show(ui, |plot_ui| {
                     for p in &targets.targets {
-                        let c = [p.longitude, p.latitude];
+                        let c = [p.longitude.to_degrees(), p.latitude.to_degrees()];
                         plot_ui.points(
                             Points::new(c)
                                 .name(p.target.name.clone())
@@ -476,7 +522,7 @@ impl WidgetMap {
                             plot_ui.points(
                                 Points::new(c)
                                     .name(p.name.clone())
-                                    .radius(3.0)
+                                    .radius(path.radius)
                                     .color(path.color)
                                     .shape(path.shape),
                             );

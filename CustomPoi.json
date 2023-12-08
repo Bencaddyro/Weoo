@@ -1,30 +1,44 @@
 {
-  "Test daymar": {
-    "name": "Test custom POI",
+  "Better Shubin": {
+    "name": "Better Shubin",
     "container": "Daymar",
     "coordinates": {
-      "x": 160.14628909478373,
-      "y": -138.61574735179286,
-      "z": 210.614307494
+      "x": 127.44473464441504,
+      "y": -148.424621114093,
+      "z": 221.275880959
     },
     "quaternions": null,
     "marker": null,
-    "latitude": null,
-    "longitude": null,
-    "altitude": null
+    "latitude": 0.8468295049106013,
+    "longitude": -2.432098461712382,
+    "altitude": 0.35579228386393424
   },
-  "BetterBennyHenge": {
-    "name": "BetterBennyHenge",
-    "container": "Yela",
+  "Better Eager": {
+    "name": "Better Eager",
+    "container": "Daymar",
     "coordinates": {
-      "x": -627.4303369942565,
-      "y": 132.0226908938478,
-      "z": -1.813837507
+      "x": 201.54989510898827,
+      "y": -103.03847515307748,
+      "z": 190.132878695
     },
     "quaternions": null,
     "marker": null,
-    "latitude": null,
-    "longitude": null,
-    "altitude": null
+    "latitude": 0.6986330578520238,
+    "longitude": -2.0433880026452376,
+    "altitude": 0.6176570185940591
+  },
+  "Better Kudre": {
+    "name": "Better Kudre",
+    "container": "Daymar",
+    "coordinates": {
+      "x": 148.28620837301372,
+      "y": -175.72701548068554,
+      "z": -184.883125611
+    },
+    "quaternions": null,
+    "marker": null,
+    "latitude": -0.6772219515299537,
+    "longitude": -2.4406832700752896,
+    "altitude": 0.043308175404547455
   }
 }

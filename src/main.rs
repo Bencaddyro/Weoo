@@ -7,7 +7,7 @@ use crate::{
 use chrono::prelude::*;
 use eframe::egui;
 use geolib::{get_current_container, Path, ProcessedPosition, SpaceTimePosition};
-use mainlib::{WidgetMap, WidgetTarget, WidgetTargets, WidgetTopPosition, WidgetPath};
+use mainlib::{WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition};
 use once_cell::sync::Lazy;
 use std::{
     collections::{BTreeMap, HashMap},
@@ -77,21 +77,21 @@ impl MyEguiApp {
             .get("Daymar")
             .unwrap()
             .poi
-            .get("Shubin Mining Facility SCD-1")
+            .get("Better Shubin")
             .unwrap()
             .to_owned();
         let target2 = database
             .get("Daymar")
             .unwrap()
             .poi
-            .get("Eager Flats Aid Shelter")
+            .get("Better Eager")
             .unwrap()
             .to_owned();
         let target3 = database
             .get("Daymar")
             .unwrap()
             .poi
-            .get("Kudre Ore")
+            .get("Better Kudre")
             .unwrap()
             .to_owned();
 
@@ -206,7 +206,6 @@ impl eframe::App for MyEguiApp {
         for w in self.targets_path.values_mut() {
             w.display(ctx);
         }
-
 
         // Display Map
         self.map.display(ctx, &self.targets, &self.paths);

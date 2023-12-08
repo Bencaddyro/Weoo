@@ -29,6 +29,7 @@ pub struct Path {
     pub history: Vec<ProcessedPosition>,
     pub color: Color32,
     pub shape: MarkerShape,
+    pub radius: f32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Copy, Clone, PartialEq, Default)]
@@ -45,6 +46,7 @@ impl Path {
             history: Vec::new(),
             color: Color32::DARK_GRAY,
             shape: MarkerShape::Circle,
+            radius: 3.0,
         }
     }
 }

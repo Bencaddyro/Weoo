@@ -1,4 +1,4 @@
-use crate::geolib::{Container, Poi, ProcessedPosition, Vec3d, Path};
+use crate::geolib::{Container, Path, Poi, ProcessedPosition, Vec3d};
 use std::{collections::BTreeMap, f64::consts::PI};
 
 #[derive(Clone, Default)]
@@ -28,7 +28,6 @@ pub struct WidgetTarget {
     pub delta_distance: Vec3d,
 }
 
-
 #[derive(Debug)]
 pub struct WidgetPath {
     pub open: bool,
@@ -40,7 +39,6 @@ pub struct WidgetPath {
     pub distance: f64,
     pub heading: f64,
 }
-
 
 #[derive(Default)]
 pub struct WidgetMap {
@@ -54,7 +52,6 @@ impl WidgetTargets {
     }
 }
 
-
 impl WidgetPath {
     pub fn update(
         &mut self,
@@ -64,7 +61,9 @@ impl WidgetPath {
         if let Some(complete_position) = complete_position {
             let target_local_coordinates = self.history.history[self.index].local_coordinates;
 
-            let target_container = database.get(&self.history.history[0].container_name).unwrap();
+            let target_container = database
+                .get(&self.history.history[0].container_name)
+                .unwrap();
             // #Grab the rotation speed of the container in the Database and convert it in degrees/s
             let target_rotation_speed_in_hours_per_rotation = target_container.rotation_speed;
 
@@ -77,10 +76,13 @@ impl WidgetPath {
                 % 360.0;
 
             // Target rotated coordinates (still relative to container center)
-            let target_rotated_coordinates = target_local_coordinates.rotate(target_rotation_state_in_degrees.to_radians());
+            let target_rotated_coordinates =
+                target_local_coordinates.rotate(target_rotation_state_in_degrees.to_radians());
 
             // #---------------------------------------------------Distance to target----------------------------------------------------------
-            let delta_distance = if complete_position.container_name == self.history.history[self.index].container_name {
+            let delta_distance = if complete_position.container_name
+                == self.history.history[self.index].container_name
+            {
                 target_local_coordinates - complete_position.local_coordinates
             } else {
                 target_rotated_coordinates + target_container.coordinates
@@ -102,7 +104,6 @@ impl WidgetPath {
         }
     }
 }
-
 
 impl WidgetTarget {
     pub fn new(target: Poi, database: &BTreeMap<String, Container>) -> Self {
