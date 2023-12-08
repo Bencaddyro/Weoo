@@ -1,6 +1,8 @@
 use chrono::Utc;
+use egui::Color32;
+use egui_plot::MarkerShape;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, BTreeMap};
+use std::collections::BTreeMap;
 use std::ops::{Add, Sub};
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Deserialize, Serialize)]
@@ -21,11 +23,30 @@ pub struct ProcessedPosition {
     pub altitude: f64,
 }
 
+#[derive(Debug, Clone)]
+pub struct Path {
+    pub name: String,
+    pub history: Vec<ProcessedPosition>,
+    pub color: Color32,
+    pub shape: MarkerShape,
+}
+
 #[derive(Debug, Deserialize, Serialize, Copy, Clone, PartialEq, Default)]
 pub struct Vec3d {
     pub x: f64,
     pub y: f64,
     pub z: f64,
+}
+
+impl Path {
+    pub fn new() -> Path {
+        Path {
+            name: "Self".to_string(),
+            history: Vec::new(),
+            color: Color32::DARK_GRAY,
+            shape: MarkerShape::Circle,
+        }
+    }
 }
 
 impl Add for Vec3d {

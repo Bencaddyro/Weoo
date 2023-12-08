@@ -2,7 +2,7 @@ use crate::geolib::{Container, Poi, ProcessedPosition, SpaceTimePosition, Vec3d,
 use arboard::Clipboard;
 use chrono::Utc;
 use regex::Regex;
-use std::collections::{HashMap, BTreeMap};
+use std::collections::{BTreeMap, HashMap};
 use std::fs::{self, File};
 
 fn get_clipboard() -> String {

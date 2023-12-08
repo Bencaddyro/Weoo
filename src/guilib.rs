@@ -1,11 +1,14 @@
 use crate::{
-    geolib::{Container, ProcessedPosition},
+    geolib::{Container, Path},
     iolib::{import_history, save_history, save_to_poi},
-    mainlib::{WidgetMap, WidgetTarget, WidgetTargets, WidgetTopPosition},
+    mainlib::{WidgetMap, WidgetTarget, WidgetTargets, WidgetTopPosition, WidgetPath},
 };
 use egui::{Color32, ComboBox, Context, Grid, Pos2, TextEdit, TopBottomPanel};
-use egui_plot::{Line, Plot, Points};
-use std::{collections::{HashMap, BTreeMap}, f64::consts::PI};
+use egui_plot::{Line, MarkerShape, Plot, Points};
+use std::{
+    collections::{BTreeMap, HashMap},
+    f64::consts::PI,
+};
 
 pub fn pretty(a: f64) -> String {
     let degrees = a.to_degrees().trunc();
@@ -14,6 +17,14 @@ pub fn pretty(a: f64) -> String {
         .trunc()
         .abs();
     format!("{degrees}° {minutes}’ {seconds}”")
+}
+
+pub fn borked_cig_heading(a: f64) -> String {
+    let degrees = a.to_degrees();
+    let graduation = (degrees / 5.0) as i64 * 5;
+    let minutes = (degrees % 5.0 * 60.0).trunc();
+
+    format!("{graduation}°{minutes}’")
 }
 use rand::Rng;
 // ui.label("Debug:"); TODO Debug feature
@@ -33,9 +44,9 @@ impl WidgetTopPosition {
         index: &mut usize,
         displayed_path: &mut String,
         targets: &mut WidgetTargets,
-        paths: &mut HashMap<String, (Color32, Vec<ProcessedPosition>)>,
+        paths: &mut HashMap<String, Path>,
     ) {
-        let len = paths.get_mut(displayed_path).unwrap().1.len();
+        let len = paths.get_mut(displayed_path).unwrap().history.len();
 
         TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -46,8 +57,12 @@ impl WidgetTopPosition {
                         ui.spinner();
                     });
 
-
-                    if let Some(position) = paths.get_mut(displayed_path).unwrap().1.get_mut(*index) {
+                    if let Some(position) = paths
+                        .get_mut(displayed_path)
+                        .unwrap()
+                        .history
+                        .get_mut(*index)
+                    {
                         egui::Grid::new("SelfPosition").show(ui, |ui| {
                             ui.label("Timestamp:");
                             ui.label(format!("{}", position.space_time_position.timestamp));
@@ -85,24 +100,23 @@ impl WidgetTopPosition {
                 ui.vertical(|ui| {
                     let mut eviction = false;
 
-                                    ui.horizontal(|ui| {
-
-                    ui.heading("Path History");
-                    ComboBox::from_id_source("Path")
+                    ui.horizontal(|ui| {
+                        ui.heading("Path History");
+                        ComboBox::from_id_source("Path")
                             .selected_text(displayed_path.to_string())
                             .show_ui(ui, |ui| {
-                                    for e in paths.keys() {
-                                    ui.selectable_value(
-                                        displayed_path,
-                                        e.clone(),
-                                        e,
-                                    );
-                                    }
-
+                                for e in paths.keys() {
+                                    ui.selectable_value(displayed_path, e.clone(), e);
+                                }
                             });
-                                    });
+                    });
 
-                    if let Some(position) = paths.get_mut(displayed_path).unwrap().1.get_mut(*index) {
+                    if let Some(position) = paths
+                        .get_mut(displayed_path)
+                        .unwrap()
+                        .history
+                        .get_mut(*index)
+                    {
                         ui.horizontal(|ui| {
                             if ui.button("❌").clicked() {
                                 eviction = true;
@@ -137,7 +151,11 @@ impl WidgetTopPosition {
                         ui.heading("No Position 😕");
                     };
                     if eviction {
-                        paths.get_mut(displayed_path).unwrap().1.remove(*index);
+                        paths
+                            .get_mut(displayed_path)
+                            .unwrap()
+                            .history
+                            .remove(*index);
                     }
 
                     // ui.separator(); // BUG fill entire right panel
@@ -146,19 +164,24 @@ impl WidgetTopPosition {
                         ui.heading("Path I/O");
 
                         if ui.button("Export Path").clicked() {
-                            save_history(&self.history_name, &paths.get_mut(displayed_path).unwrap().1);
+                            save_history(
+                                &self.history_name,
+                                &paths.get_mut(displayed_path).unwrap().history,
+                            );
                         };
                         if ui.button("Import Path").clicked() {
                             paths.insert(
                                 self.history_name.to_owned(),
-                                (
-                                    Color32::from_rgb(
+                                Path {
+                                    name: self.history_name.to_owned(),
+                                    color: Color32::from_rgb(
                                         rand::thread_rng().gen(),
                                         rand::thread_rng().gen(),
                                         rand::thread_rng().gen(),
                                     ),
-                                    import_history(&self.history_name),
-                                ),
+                                    history: import_history(&self.history_name),
+                                    shape: MarkerShape::Diamond,
+                                },
                             );
                         };
                         ui.add(TextEdit::singleline(&mut self.history_name).hint_text("Path Name"));
@@ -196,7 +219,6 @@ impl WidgetTopPosition {
                                         .poi
                                         .values()
                                     {
-
                                         ui.selectable_value(
                                             &mut self.target_poi,
                                             poi.clone(),
@@ -230,7 +252,8 @@ impl WidgetTargets {
         ctx: &egui::Context,
         index: &mut usize,
         displayed_path: &mut String,
-        paths: &mut HashMap<String, (Color32, Vec<ProcessedPosition>)>,
+        paths: &mut HashMap<String, Path>,
+        targets_path: &mut HashMap<String, WidgetPath>,
     ) {
         egui::SidePanel::left("my_left_panel").show(ctx, |ui| {
             ui.heading("Targets");
@@ -240,6 +263,9 @@ impl WidgetTargets {
                 ui.horizontal(|ui| {
                     if ui.button("❌").clicked() {
                         eviction.push(i);
+                    };
+                    if ui.button("👁").clicked() {
+                        e.open = !e.open;
                     };
                     // if ui.button("⏶").clicked() { };
                     // if ui.button("⏷").clicked() { };
@@ -257,7 +283,8 @@ impl WidgetTargets {
 
             let mut eviction = Vec::new();
 
-            for (i, p) in paths.get_mut("Self").unwrap().1.iter().enumerate() {
+
+            for (i, p) in paths.get_mut("Self").unwrap().history.iter().enumerate() {
                 ui.horizontal(|ui| {
                     if ui.button("❌").clicked() {
                         eviction.push(i)
@@ -270,14 +297,14 @@ impl WidgetTargets {
             }
 
             for i in eviction {
-                paths.get_mut("Self").unwrap().1.remove(i);
+                paths.get_mut("Self").unwrap().history.remove(i);
             }
 
             // clamp index if deletion
-            let len = if paths.get_mut(displayed_path).unwrap().1.is_empty() {
+            let len = if paths.get_mut(displayed_path).unwrap().history.is_empty() {
                 0
             } else {
-                paths.get_mut(displayed_path).unwrap().1.len() - 1
+                paths.get_mut(displayed_path).unwrap().history.len() - 1
             };
             *index = (*index).min(len);
 
@@ -285,20 +312,34 @@ impl WidgetTargets {
 
             let mut eviction_path = None;
 
-            for (k, (_c, v)) in paths.clone().iter() {
-
+            for (k, path) in paths.iter_mut() {
                 if k != "Self" {
+                    ui.horizontal(|ui| {
+                        if ui.button("❌").clicked() {
+                            eviction_path = Some(k.clone());
+                        };
+                        if ui.button("🗺").clicked() {
+                            targets_path.insert(k.to_owned(), WidgetPath { open: true, index: 0, history: path.clone(), latitude: 0.0, longitude: 0.0, altitude: 0.0, distance: 0.0, heading: 0.0 } );
+                        };
 
-                ui.horizontal(|ui| {
-                    if ui.button("❌").clicked() {
-                        eviction_path = Some(k.clone());
-                    };
-                    ui.heading(format!("{k} path"));
-                });
+                        ui.heading(k);
+                        ui.color_edit_button_srgba(&mut path.color);
+                        ComboBox::from_id_source(path.name.to_string())
+                            .selected_text("")
+                            .show_ui(ui, |ui| {
+                                for marker in MarkerShape::all() {
+                                    ui.selectable_value(
+                                        &mut path.shape,
+                                        marker,
+                                        format!("{marker:?}"),
+                                    );
+                                }
+                            });
+                    });
 
-                for p in v {
-                    ui.label(p.name.clone());
-                }
+                    for p in &path.history {
+                        ui.label(p.name.clone());
+                    }
                 }
             }
 
@@ -334,9 +375,53 @@ impl WidgetTarget {
                     ui.label("Heading:");
                     ui.label(pretty(self.heading));
                     ui.end_row();
-                    // ui.label("Delta:");
-                    // ui.label(format!("{:?}", self.delta_distance));
-                    // ui.end_row();
+                    ui.label("CIG Heading:");
+                    ui.label(borked_cig_heading(self.heading));
+                    ui.end_row();
+                });
+            });
+    }
+}
+
+impl WidgetPath {
+    pub fn display(&mut self, ctx: &egui::Context) {
+        let current_point = &self.history.history[self.index];
+        egui::Window::new(format!("Path - {}", self.history.name))
+            .default_pos(Pos2::new(400.0, 800.0))
+            .open(&mut self.open)
+            .show(ctx, |ui| {
+                egui::Grid::new("MainGrid").show(ui, |ui| {
+                    ui.horizontal(|ui| {
+if ui.button("⏴").clicked() & (self.index > 0) {
+                                self.index -= 1;
+                    };
+                    if ui.button("⏵").clicked() & (self.index + 1 < self.history.history.len()) {
+                                self.index += 1;
+                    };
+                    ui.heading(format!("{}/{}", self.index+1, self.history.history.len()));
+
+                    });
+                                        ui.heading(&current_point.name);
+
+                                     ui.end_row();
+                    ui.label("Latitute:");
+                    ui.label(pretty(current_point.latitude));
+                    ui.end_row();
+                    ui.label("Longitude:");
+                    ui.label(pretty(current_point.longitude));
+                    ui.end_row();
+                    ui.label("Altitude:");
+                    ui.label(format!("{:.3}km", current_point.altitude));
+                    ui.end_row();
+                    ui.label("Distance:");
+                    ui.label(format!("{:.3}km", self.distance));
+                    ui.end_row();
+                    ui.label("Heading:");
+                    ui.label(pretty(self.heading));
+                    ui.end_row();
+                    ui.label("CIG Heading:");
+                    ui.label(borked_cig_heading(self.heading));
+                    ui.end_row();
                 });
             });
     }
@@ -347,20 +432,15 @@ impl WidgetMap {
         &mut self,
         ctx: &egui::Context,
         targets: &WidgetTargets,
-        paths: &HashMap<String, (Color32, Vec<ProcessedPosition>)>,
+        paths: &HashMap<String, Path>,
     ) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Map");
-
-            // plot satelite screen based on coordinates found on lidar
-            // TODO : how to scale screen shot ? 1920*1080 = q lat + j long -> mercator deformation :explosion_head:
-
-            // screenshot : head to 0° / pitch 0°
-            // Clever way : get current heading by diff position betweenscreenshot
+            // TODO get map from scdatatools
 
             Plot::new("my_plot")
                 // .min_size(Vec2::new(800.0,500.0))
-                // .view_aspect(2.0)
+                .view_aspect(1.0)
                 // .data_aspect(2.0)
                 .include_x(-PI)
                 .include_x(PI)
@@ -376,48 +456,32 @@ impl WidgetMap {
                 .show(ui, |plot_ui| {
                     for p in &targets.targets {
                         let c = [p.longitude, p.latitude];
-                        plot_ui.points(Points::new(c).name(p.target.name.clone()).radius(3.0));
+                        plot_ui.points(
+                            Points::new(c)
+                                .name(p.target.name.clone())
+                                .radius(3.0)
+                                .shape(egui_plot::MarkerShape::Diamond),
+                        );
                     }
 
-                    // Construct & display history
-                    // let mut path = Vec::new();
-                    // for p in position_history {
-                    //     let c = [
-                    //         p.local_coordinates.longitude(),
-                    //         p.local_coordinates.latitude(),
-                    //     ];
-                    //     path.push(c);
-                    //     plot_ui.points(
-                    //         Points::new(c)
-                    //             .name(p.name.clone())
-                    //             .radius(3.0)
-                    //             .color(Color32::DARK_GRAY),
-                    //     );
-                    // }
-                    // plot_ui.line(
-                    //     Line::new(path)
-                    //         .name("Self")
-                    //         .width(1.5)
-                    //         .color(Color32::DARK_GRAY),
-                    // );
-
-                    //Now for all path !
-                    for (k, (color, v)) in paths {
-                        let mut path = Vec::new();
-                        for p in v {
+                    // Construct & display all path !
+                    for (k, path) in paths {
+                        let mut point_path = Vec::new();
+                        for p in &path.history {
                             let c = [
                                 p.local_coordinates.longitude(),
                                 p.local_coordinates.latitude(),
                             ];
-                            path.push(c);
+                            point_path.push(c);
                             plot_ui.points(
                                 Points::new(c)
                                     .name(p.name.clone())
                                     .radius(3.0)
-                                    .color(*color),
+                                    .color(path.color)
+                                    .shape(path.shape),
                             );
                         }
-                        plot_ui.line(Line::new(path).name(k).width(1.5).color(*color));
+                        plot_ui.line(Line::new(point_path).name(k).width(1.5).color(path.color));
                     }
                 });
         });
