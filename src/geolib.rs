@@ -1,15 +1,15 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use std::ops::{Add, Sub};
 
-#[derive(Default, Copy, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, Deserialize, Serialize)]
 pub struct SpaceTimePosition {
     pub coordinates: Vec3d,
     pub timestamp: chrono::DateTime<Utc>,
 }
 
-#[derive(Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct ProcessedPosition {
     pub space_time_position: SpaceTimePosition,
     pub local_coordinates: Vec3d,
@@ -137,7 +137,7 @@ pub struct Container {
     pub orbital_speed: f64,
     pub orbital_angle: f64,
     pub grid_radius: f64,
-    pub poi: HashMap<String, Poi>,
+    pub poi: BTreeMap<String, Poi>,
 }
 #[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
 pub struct Poi {
@@ -151,7 +151,7 @@ pub struct Poi {
     pub altitude: Option<f64>,
 }
 
-pub fn get_current_container(pos: &Vec3d, database: &HashMap<String, Container>) -> Container {
+pub fn get_current_container(pos: &Vec3d, database: &BTreeMap<String, Container>) -> Container {
     let mut current_container = Container {
         name: "Space".to_string(),
         coordinates: Vec3d::new(0.0, 0.0, 0.0),
@@ -167,7 +167,7 @@ pub fn get_current_container(pos: &Vec3d, database: &HashMap<String, Container>)
         orbital_speed: 0.0,
         orbital_angle: 0.0,
         grid_radius: 0.0,
-        poi: HashMap::new(),
+        poi: BTreeMap::new(),
     };
 
     for c in database.values() {

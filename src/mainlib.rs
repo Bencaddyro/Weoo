@@ -1,5 +1,5 @@
 use crate::geolib::{Container, Poi, ProcessedPosition, Vec3d};
-use std::{collections::HashMap, f64::consts::PI};
+use std::{collections::{HashMap, BTreeMap}, f64::consts::PI};
 
 #[derive(Clone, Default)]
 pub struct WidgetTopPosition {
@@ -41,7 +41,7 @@ impl WidgetTargets {
 }
 
 impl WidgetTarget {
-    pub fn new(target: Poi, database: &HashMap<String, Container>) -> Self {
+    pub fn new(target: Poi, database: &BTreeMap<String, Container>) -> Self {
         Self {
             open: true,
             latitude: target.coordinates.latitude(),
@@ -59,7 +59,7 @@ impl WidgetTarget {
 
     pub fn update(
         &mut self,
-        database: &HashMap<String, Container>,
+        database: &BTreeMap<String, Container>,
         complete_position: Option<&ProcessedPosition>,
     ) {
         if let Some(complete_position) = complete_position {

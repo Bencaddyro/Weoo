@@ -10,7 +10,7 @@ use egui::Color32;
 use geolib::{get_current_container, ProcessedPosition, SpaceTimePosition};
 use mainlib::{WidgetMap, WidgetTarget, WidgetTargets, WidgetTopPosition};
 use once_cell::sync::Lazy;
-use std::{collections::HashMap, f64::NAN};
+use std::{collections::{HashMap, BTreeMap}, f64::NAN};
 use uuid::Uuid;
 
 mod geolib;
@@ -20,7 +20,7 @@ mod mainlib;
 
 // Somewhere on Daymar
 // Coordinates: x:-18930379393.98 y:-2610297380.75 z:210614.307494
-// Coordinates: x:-18930499393.98 y:-2610297380.75 z:210614.307494
+// Coordinates: x:-18930479393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930579393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930679393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930779393.98 y:-2610297380.75 z:210614.307494
@@ -40,14 +40,16 @@ fn main() -> eframe::Result<()> {
 #[derive(Default)]
 struct MyEguiApp {
     // Data
-    database: HashMap<String, Container>,
+    database: BTreeMap<String, Container>,
     space_time_position: SpaceTimePosition,
 
     // App State
     index: usize,
-    position_history: Vec<ProcessedPosition>,
+    // position_history: Vec<ProcessedPosition>,
 
     paths: HashMap<String, (Color32, Vec<ProcessedPosition>)>,
+
+    displayed_path: String,
 
     // Gui component
     position: WidgetTopPosition,
@@ -102,6 +104,8 @@ impl MyEguiApp {
         MyEguiApp {
             database,
             targets: WidgetTargets::new(targets),
+            paths: HashMap::from([("Self".to_owned(), (Color32::DARK_GRAY, Vec::new()))]),
+            displayed_path: "Self".to_owned(),
             ..Default::default()
         }
     }
@@ -144,8 +148,9 @@ impl MyEguiApp {
         };
 
         // add it to history
-        self.position_history.push(new_position);
-        self.index = self.position_history.len() - 1;
+        self.displayed_path = "Self".to_string();
+        self.paths.get_mut("Self").unwrap().1.push(new_position);
+        self.index = self.paths.get_mut("Self").unwrap().1.len() - 1;
     }
 }
 
@@ -161,7 +166,7 @@ impl eframe::App for MyEguiApp {
 
         // Update all targets with current position !
         for i in self.targets.targets.iter_mut() {
-            i.update(&self.database, self.position_history.get(self.index));
+            i.update(&self.database, self.paths.get_mut("Self").unwrap().1.get(self.index));
         }
 
         // Display self position
@@ -169,7 +174,8 @@ impl eframe::App for MyEguiApp {
             ctx,
             &mut self.database,
             &mut self.index,
-            &mut self.position_history,
+            &mut self.displayed_path,
+            // &mut self.paths.get_mut("Self").unwrap().1,
             &mut self.targets,
             &mut self.paths,
         );
@@ -178,12 +184,13 @@ impl eframe::App for MyEguiApp {
         self.targets.display(
             ctx,
             &mut self.index,
-            &mut self.position_history,
+            &mut self.displayed_path,
             &mut self.paths,
         );
 
         // Display Map
         self.map
-            .display(ctx, &mut self.position_history, &self.targets, &self.paths);
+            .display(ctx,
+                     &self.targets, &self.paths);
     }
 }

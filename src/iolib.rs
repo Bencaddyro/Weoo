@@ -2,7 +2,7 @@ use crate::geolib::{Container, Poi, ProcessedPosition, SpaceTimePosition, Vec3d,
 use arboard::Clipboard;
 use chrono::Utc;
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use std::fs::{self, File};
 
 fn get_clipboard() -> String {
@@ -34,20 +34,20 @@ pub fn get_space_time_position() -> Option<SpaceTimePosition> {
     })
 }
 
-pub fn load_database() -> HashMap<String, Container> {
+pub fn load_database() -> BTreeMap<String, Container> {
     // Database.json
     let file = fs::File::open("Database.json").expect("file should open read only");
     let json: HashMap<String, HashMap<String, HashMap<String, serde_json::Value>>> =
         serde_json::from_reader(file).expect("file should be proper JSON");
 
-    let mut containers: HashMap<String, Container> = HashMap::new();
+    let mut containers: BTreeMap<String, Container> = BTreeMap::new();
 
     for (_k, v) in json.iter() {
         // println!("keys : {k}");
         for (_kk, vv) in v.iter() {
             // println!("kkeys {kk}");
-            let mut poi = HashMap::new();
-            let ppoi: HashMap<String, HashMap<String, serde_json::Value>> =
+            let mut poi = BTreeMap::new();
+            let ppoi: BTreeMap<String, BTreeMap<String, serde_json::Value>> =
                 serde_json::from_value(vv.get("POI").unwrap().to_owned()).unwrap();
 
             for e in ppoi.into_values() {
@@ -83,6 +83,7 @@ pub fn load_database() -> HashMap<String, Container> {
                 };
                 poi.insert(new_poi.name.clone(), new_poi);
             }
+
             let elem = Container {
                 name: vv.get("Name").unwrap().to_string().replace('"', ""),
                 coordinates: Vec3d::new(
@@ -122,7 +123,7 @@ pub fn load_database() -> HashMap<String, Container> {
 
     // CustomPoi.json
     if let Ok(file) = File::open("CustomPoi.json") {
-        let json: HashMap<String, Poi> =
+        let json: BTreeMap<String, Poi> =
             serde_json::from_reader(file).expect("file should be proper JSON");
 
         for poi in json.into_values() {
