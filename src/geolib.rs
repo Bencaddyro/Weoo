@@ -124,10 +124,9 @@ impl Vec3d {
             - self.latitude().sin()
                 * target.latitude().cos()
                 * (target.longitude() - self.longitude()).cos();
-        let b = x.atan2(y);
+        x.atan2(y)
         // let c = y.atan2(x);
         // println!("{a} {b} {c}");
-        b
     }
 }
 

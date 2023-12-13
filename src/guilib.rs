@@ -3,13 +3,11 @@ use crate::{
     iolib::{import_history, save_history, save_to_poi},
     mainlib::{WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition},
 };
-use egui::{Color32, ComboBox, Context, Grid, Pos2, TextEdit, TopBottomPanel};
-use egui_plot::{GridInput, GridMark, Line, MarkerShape, Plot, Points};
-use std::{
-    collections::{BTreeMap, HashMap},
-    f64::consts::PI,
-    ops::RangeInclusive,
+use egui::{
+    CollapsingHeader, Color32, ComboBox, Context, Grid, Pos2, RichText, TextEdit, TopBottomPanel,
 };
+use egui_plot::{Line, MarkerShape, Plot, Points};
+use std::collections::{BTreeMap, HashMap};
 
 pub fn pretty(a: f64) -> String {
     let degrees = a.to_degrees().trunc();
@@ -20,24 +18,24 @@ pub fn pretty(a: f64) -> String {
     format!("{degrees}° {minutes}’ {seconds}”")
 }
 
-pub fn legend(a: f64, b: usize, range: &RangeInclusive<f64>) -> String {
-    let degrees = a.to_degrees().trunc();
-    format!("{degrees}°")
-}
+// pub fn legend(a: f64, b: usize, range: &RangeInclusive<f64>) -> String {
+//     let degrees = a.to_degrees().trunc();
+//     format!("{degrees}°")
+// }
 
-pub fn grid(range: GridInput) -> Vec<GridMark> {
-    let mut mark = Vec::new();
-    let (a, b) = range.bounds;
-    let (a, b) = (a.to_degrees().trunc() as i64, b.to_degrees().trunc() as i64);
-    let aa = (a / 10) * 10;
-    for i in (aa..b).step_by(10) {
-        mark.push(GridMark {
-            value: (i as f64).to_radians(),
-            step_size: 25.0,
-        })
-    }
-    mark
-}
+// pub fn grid(range: GridInput) -> Vec<GridMark> {
+//     let mut mark = Vec::new();
+//     let (a, b) = range.bounds;
+//     let (a, b) = (a.to_degrees().trunc() as i64, b.to_degrees().trunc() as i64);
+//     let aa = (a / 10) * 10;
+//     for i in (aa..b).step_by(10) {
+//         mark.push(GridMark {
+//             value: (i as f64).to_radians(),
+//             step_size: 25.0,
+//         })
+//     }
+//     mark
+// }
 
 pub fn borked_cig_heading(a: f64) -> String {
     let degrees = a.to_degrees();
@@ -277,117 +275,141 @@ impl WidgetTargets {
         targets_path: &mut HashMap<String, WidgetPath>,
     ) {
         egui::SidePanel::left("my_left_panel").show(ctx, |ui| {
-            ui.heading("Targets");
+            CollapsingHeader::new(RichText::new("Targets").heading())
+                .default_open(true)
+                .show(ui, |ui| {
+                    let mut eviction = Vec::new();
+                    for (i, e) in self.targets.iter_mut().enumerate() {
+                        ui.horizontal(|ui| {
+                            if ui.button("❌").clicked() {
+                                eviction.push(i);
+                            };
+                            if ui.button("👁").clicked() {
+                                e.open = !e.open;
+                            };
 
-            let mut eviction = Vec::new();
-            for (i, e) in self.targets.iter_mut().enumerate() {
-                ui.horizontal(|ui| {
-                    if ui.button("❌").clicked() {
-                        eviction.push(i);
-                    };
-                    if ui.button("👁").clicked() {
-                        e.open = !e.open;
-                    };
-                    // if ui.button("⏶").clicked() { };
-                    // if ui.button("⏷").clicked() { };
+                            ui.label(&e.target.name);
+                        });
 
-                    ui.label(&e.target.name);
-                });
-
-                e.display(ctx);
-            }
-            for i in eviction {
-                self.targets.remove(i);
-            }
-
-            ui.heading("Self Positions");
-
-            let mut eviction = Vec::new();
-
-            for (i, p) in paths.get_mut("Self").unwrap().history.iter().enumerate() {
-                ui.horizontal(|ui| {
-                    if ui.button("❌").clicked() {
-                        eviction.push(i)
-                    };
-                    // if ui.button("⏶").clicked() { };
-                    // if ui.button("⏷").clicked() { };
-
-                    ui.label(p.name.clone());
-                });
-            }
-
-            for i in eviction {
-                paths.get_mut("Self").unwrap().history.remove(i);
-            }
-
-            // clamp index if deletion
-            let len = if paths.get_mut(displayed_path).unwrap().history.is_empty() {
-                0
-            } else {
-                paths.get_mut(displayed_path).unwrap().history.len() - 1
-            };
-            *index = (*index).min(len);
-
-            ui.heading("Paths");
-
-            let mut eviction_path = None;
-
-            for (k, path) in paths.iter_mut() {
-                if k != "Self" {
-                    ui.horizontal(|ui| {
-                        if ui.button("❌").clicked() {
-                            eviction_path = Some(k.clone());
-                        };
-                        if ui.button("🗺").clicked() {
-                            targets_path.insert(
-                                k.to_owned(),
-                                WidgetPath {
-                                    open: true,
-                                    index: 0,
-                                    history: path.clone(),
-                                    latitude: 0.0,
-                                    longitude: 0.0,
-                                    altitude: 0.0,
-                                    distance: 0.0,
-                                    heading: 0.0,
-                                },
-                            );
-                        };
-
-                        ui.heading(k);
-                        ui.color_edit_button_srgba(&mut path.color);
-
-                        ui.add(
-                            egui::DragValue::new(&mut path.radius)
-                                .speed(0.1)
-                                .clamp_range(0..=10),
-                        );
-
-                        // ComboBox::from_id_source(path.name.to_string())
-                        //     .selected_text("")
-                        //     .show_ui(ui, |ui| {
-                        //         for marker in MarkerShape::all() {
-                        //             ui.selectable_value(
-                        //                 &mut path.shape,
-                        //                 marker,
-                        //                 format!("{marker:?}"),
-                        //             );
-                        //         }
-                        //     });
-                    });
-
-                    for p in &path.history {
-                        ui.label(p.name.clone());
+                        e.display(ctx);
                     }
-                }
-            }
+                    for i in eviction {
+                        self.targets.remove(i);
+                    }
+                });
 
-            if let Some(k) = eviction_path {
-                paths.remove(&k);
-                if !paths.contains_key(displayed_path) {
-                    *displayed_path = "Self".to_string();
-                }
-            }
+            CollapsingHeader::new(RichText::new("Self Positions").heading())
+                .default_open(true)
+                .show(ui, |ui| {
+                    let mut eviction = None;
+                    let mut up = None;
+                    let mut down = None;
+                    let len = paths.get("Self").unwrap().history.len();
+                    for (i, p) in paths.get_mut("Self").unwrap().history.iter().enumerate() {
+                        ui.horizontal(|ui| {
+                            if ui.button("❌").clicked() {
+                                eviction = Some(i)
+                            };
+                            if ui.button("⏶").clicked() & (len > 1) {
+                                up = Some(i);
+                            };
+                            if ui.button("⏷").clicked() & (len > 1) {
+                                down = Some(i);
+                            };
+                            ui.label(p.name.clone());
+                        });
+                    }
+
+                    if let Some(i) = eviction {
+                        paths.get_mut("Self").unwrap().history.remove(i);
+                    } else if let Some(i) = up {
+                        let point = paths.get_mut("Self").unwrap().history.remove(i);
+                        paths
+                            .get_mut("Self")
+                            .unwrap()
+                            .history
+                            .insert(i.max(1) - 1, point)
+                    } else if let Some(i) = down {
+                        let point = paths.get_mut("Self").unwrap().history.remove(i);
+                        paths
+                            .get_mut("Self")
+                            .unwrap()
+                            .history
+                            .insert(i.min(len - 2) + 1, point)
+                    }
+
+                    // clamp index if deletion
+                    let len = if paths.get_mut(displayed_path).unwrap().history.is_empty() {
+                        0
+                    } else {
+                        paths.get_mut(displayed_path).unwrap().history.len() - 1
+                    };
+                    *index = (*index).min(len);
+                });
+
+            CollapsingHeader::new(RichText::new("Paths").heading())
+                .default_open(true)
+                .show(ui, |ui| {
+                    for (k, path) in paths.iter_mut() {
+                        let mut eviction_path = None;
+                        let mut up = None;
+                        let mut down = None;
+                        if k != "Self" {
+                            CollapsingHeader::new(RichText::new(k).heading()).show(ui, |ui| {
+                                ui.horizontal(|ui| {
+                                    if ui.button("❌").clicked() {
+                                        // eviction_path = Some(k.clone());
+                                    };
+                                    if ui.button("🗺").clicked() {
+                                        targets_path.insert(
+                                            k.to_owned(),
+                                            WidgetPath {
+                                                open: true,
+                                                index: 0,
+                                                history: path.clone(),
+                                                latitude: 0.0,
+                                                longitude: 0.0,
+                                                altitude: 0.0,
+                                                distance: 0.0,
+                                                heading: 0.0,
+                                            },
+                                        );
+                                    };
+
+                                    ui.color_edit_button_srgba(&mut path.color);
+
+                                    ui.add(
+                                        egui::DragValue::new(&mut path.radius)
+                                            .speed(0.1)
+                                            .clamp_range(0..=10),
+                                    );
+                                });
+                                let len = path.history.len();
+
+                                for (i, p) in path.history.iter().enumerate() {
+                                    ui.horizontal(|ui| {
+                                        ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+
+                                        if ui.button("❌").clicked() {
+                                            eviction_path = Some(i)
+                                        };
+                                        if ui.button("⏶").clicked() & (len > 1) {
+                                            up = Some(i);
+                                        };
+                                        if ui.button("⏷").clicked() & (len > 1) {
+                                            down = Some(i);
+                                        };
+
+                                        ui.label(&p.name);
+                                    });
+                                }
+                            });
+                        }
+
+                    }
+
+
+                });
         });
     }
 }
@@ -515,8 +537,8 @@ impl WidgetMap {
                         let mut point_path = Vec::new();
                         for p in &path.history {
                             let c = [
-                                p.local_coordinates.longitude(),
-                                p.local_coordinates.latitude(),
+                                p.local_coordinates.longitude().to_degrees(),
+                                p.local_coordinates.latitude().to_degrees(),
                             ];
                             point_path.push(c);
                             plot_ui.points(
