@@ -368,7 +368,7 @@ pub fn display_path(
                         distance: 0.0,
                         heading: 0.0,
                         duration: Duration::zero(),
-                        length: 0.0, //TODO better init ?
+                        length: 0.0,
                     },
                 );
             };
@@ -434,7 +434,7 @@ pub fn display_path(
         path.history.insert(i.min(len - 2) + 1, point)
     }
 
-    return eviction_path;
+    eviction_path
 }
 
 impl WidgetTarget {
