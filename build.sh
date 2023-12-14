@@ -12,4 +12,4 @@ cp target/release/weoo_nav_tool target/release/weoo_nav_tool_v$VERSION
 cp target/x86_64-pc-windows-gnu/release/weoo_nav_tool.exe target/x86_64-pc-windows-gnu/release/weoo_nav_tool_v$VERSION.exe
 
 # Zip everything
-zip -j "weoo_nav_tool_v$VERSION.zip" target/release/weoo_nav_tool_v$VERSION target/x86_64-pc-windows-gnu/release/weoo_nav_tool_v$VERSION.exe Database.json
+zip -j "weoo_nav_tool_v$VERSION.zip" target/release/weoo_nav_tool_v$VERSION target/x86_64-pc-windows-gnu/release/weoo_nav_tool_v$VERSION.exe Database.json CustomPoi.json
