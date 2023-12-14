@@ -307,6 +307,8 @@ impl WidgetTargets {
                     let len = paths.get("Self").unwrap().history.len();
                     for (i, p) in paths.get_mut("Self").unwrap().history.iter().enumerate() {
                         ui.horizontal(|ui| {
+                            ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+
                             if ui.button("❌").clicked() {
                                 eviction = Some(i)
                             };
@@ -350,15 +352,18 @@ impl WidgetTargets {
             CollapsingHeader::new(RichText::new("Paths").heading())
                 .default_open(true)
                 .show(ui, |ui| {
+                    let mut eviction_path = None;
                     for (k, path) in paths.iter_mut() {
-                        let mut eviction_path = None;
+                        let mut eviction = None;
                         let mut up = None;
                         let mut down = None;
+                        let len = path.history.len();
+
                         if k != "Self" {
                             CollapsingHeader::new(RichText::new(k).heading()).show(ui, |ui| {
                                 ui.horizontal(|ui| {
                                     if ui.button("❌").clicked() {
-                                        // eviction_path = Some(k.clone());
+                                        eviction_path = Some(k.to_string());
                                     };
                                     if ui.button("🗺").clicked() {
                                         targets_path.insert(
@@ -384,14 +389,13 @@ impl WidgetTargets {
                                             .clamp_range(0..=10),
                                     );
                                 });
-                                let len = path.history.len();
 
                                 for (i, p) in path.history.iter().enumerate() {
                                     ui.horizontal(|ui| {
                                         ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
 
                                         if ui.button("❌").clicked() {
-                                            eviction_path = Some(i)
+                                            eviction = Some(i)
                                         };
                                         if ui.button("⏶").clicked() & (len > 1) {
                                             up = Some(i);
@@ -404,11 +408,25 @@ impl WidgetTargets {
                                     });
                                 }
                             });
-                        }
 
+                            if let Some(i) = eviction {
+                                path.history.remove(i);
+                                if path.history.is_empty() {
+                                    eviction_path = Some(k.to_string());
+                                }
+                            } else if let Some(i) = up {
+                                let point = path.history.remove(i);
+                                path.history.insert(i.max(1) - 1, point)
+                            } else if let Some(i) = down {
+                                let point = path.history.remove(i);
+                                path.history.insert(i.min(len - 2) + 1, point)
+                            }
+                        }
                     }
 
-
+                    if let Some(k) = eviction_path {
+                        paths.remove(&k);
+                    }
                 });
         });
     }
