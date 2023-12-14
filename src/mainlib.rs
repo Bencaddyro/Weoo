@@ -1,5 +1,10 @@
+use chrono::Duration;
+
 use crate::geolib::{Container, Path, Poi, ProcessedPosition, Vec3d};
-use std::{collections::BTreeMap, f64::consts::PI};
+use std::{
+    collections::{BTreeMap, HashMap},
+    f64::consts::PI,
+};
 
 #[derive(Clone, Default)]
 pub struct WidgetTopPosition {
@@ -32,12 +37,14 @@ pub struct WidgetTarget {
 pub struct WidgetPath {
     pub open: bool,
     pub index: usize,
-    pub history: Path,
+    pub history: String,
     pub latitude: f64,
     pub longitude: f64,
     pub altitude: f64,
     pub distance: f64,
     pub heading: f64,
+    pub duration: Duration,
+    pub length: f64,
 }
 
 #[derive(Default)]
@@ -57,13 +64,24 @@ impl WidgetPath {
         &mut self,
         database: &BTreeMap<String, Container>,
         complete_position: Option<&ProcessedPosition>,
+        paths: &HashMap<String, Path>,
     ) {
-        if let Some(complete_position) = complete_position {
-            let target_local_coordinates = self.history.history[self.index].local_coordinates;
+        let path = paths.get(&self.history).unwrap();
 
-            let target_container = database
-                .get(&self.history.history[0].container_name)
-                .unwrap();
+        // Update path lenght
+        self.length = 0.0;
+        for i in 1..path.history.len() {
+            self.length +=
+                (path.history[i - 1].local_coordinates - path.history[i].local_coordinates).norm();
+        }
+        // Update path duration
+        self.duration = path.history.last().unwrap().space_time_position.timestamp
+            - path.history[0].space_time_position.timestamp;
+
+        if let Some(complete_position) = complete_position {
+            let target_local_coordinates = path.history[self.index].local_coordinates;
+
+            let target_container = database.get(&path.history[0].container_name).unwrap();
             // #Grab the rotation speed of the container in the Database and convert it in degrees/s
             let target_rotation_speed_in_hours_per_rotation = target_container.rotation_speed;
 
@@ -80,16 +98,15 @@ impl WidgetPath {
                 target_local_coordinates.rotate(target_rotation_state_in_degrees.to_radians());
 
             // #---------------------------------------------------Distance to target----------------------------------------------------------
-            let delta_distance = if complete_position.container_name
-                == self.history.history[self.index].container_name
-            {
-                target_local_coordinates - complete_position.local_coordinates
-            } else {
-                target_rotated_coordinates + target_container.coordinates
+            let delta_distance =
+                if complete_position.container_name == path.history[self.index].container_name {
+                    target_local_coordinates - complete_position.local_coordinates
+                } else {
+                    target_rotated_coordinates + target_container.coordinates
                     // - complete_position.local_coordinates // why this ?
                     // + complete_position.absolute_coordinates // and why a + ?
                     - complete_position.space_time_position.coordinates
-            };
+                };
             self.distance = delta_distance.norm();
 
             // #----------------------------------------------------------Heading--------------------------------------------------------------
