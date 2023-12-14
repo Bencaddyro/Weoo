@@ -179,7 +179,8 @@ impl eframe::App for MyEguiApp {
         for i in self.targets_path.values_mut() {
             i.update(
                 &self.database,
-                self.paths.get_mut("Self").unwrap().history.get(self.index),
+                self.paths.get("Self").unwrap().history.get(self.index),
+                &self.paths,
             )
         }
 
@@ -204,7 +205,7 @@ impl eframe::App for MyEguiApp {
 
         // Display targets_path
         for w in self.targets_path.values_mut() {
-            w.display(ctx);
+            w.display(ctx, &self.paths);
         }
 
         // Display Map

@@ -3,8 +3,10 @@ use crate::{
     iolib::{import_history, save_history, save_to_poi},
     mainlib::{WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition},
 };
+use chrono::Duration;
 use egui::{
     CollapsingHeader, Color32, ComboBox, Context, Grid, Pos2, RichText, TextEdit, TopBottomPanel,
+    Ui,
 };
 use egui_plot::{Line, MarkerShape, Plot, Points};
 use std::collections::{BTreeMap, HashMap};
@@ -16,6 +18,13 @@ pub fn pretty(a: f64) -> String {
         .trunc()
         .abs();
     format!("{degrees}° {minutes}’ {seconds}”")
+}
+
+pub fn pretty_duration(a: Duration) -> String {
+    let seconds = a.num_seconds() % 60;
+    let minutes = (a.num_seconds() / 60) % 60;
+    let hours = (a.num_seconds() / 60) / 60;
+    format!("{:0>2}:{:0>2}:{:0>2}", hours, minutes, seconds)
 }
 
 // pub fn legend(a: f64, b: usize, range: &RangeInclusive<f64>) -> String {
@@ -298,138 +307,134 @@ impl WidgetTargets {
                     }
                 });
 
-            CollapsingHeader::new(RichText::new("Self Positions").heading())
-                .default_open(true)
-                .show(ui, |ui| {
-                    let mut eviction = None;
-                    let mut up = None;
-                    let mut down = None;
-                    let len = paths.get("Self").unwrap().history.len();
-                    for (i, p) in paths.get_mut("Self").unwrap().history.iter().enumerate() {
-                        ui.horizontal(|ui| {
-                            ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+            ui.heading("Paths");
 
-                            if ui.button("❌").clicked() {
-                                eviction = Some(i)
-                            };
-                            if ui.button("⏶").clicked() & (len > 1) {
-                                up = Some(i);
-                            };
-                            if ui.button("⏷").clicked() & (len > 1) {
-                                down = Some(i);
-                            };
-                            ui.label(p.name.clone());
-                        });
-                    }
+            let mut eviction_path = None;
+            for (k, path) in paths.iter_mut() {
+                eviction_path = display_path(ui, path, targets_path);
 
-                    if let Some(i) = eviction {
-                        paths.get_mut("Self").unwrap().history.remove(i);
-                    } else if let Some(i) = up {
-                        let point = paths.get_mut("Self").unwrap().history.remove(i);
-                        paths
-                            .get_mut("Self")
-                            .unwrap()
-                            .history
-                            .insert(i.max(1) - 1, point)
-                    } else if let Some(i) = down {
-                        let point = paths.get_mut("Self").unwrap().history.remove(i);
-                        paths
-                            .get_mut("Self")
-                            .unwrap()
-                            .history
-                            .insert(i.min(len - 2) + 1, point)
-                    }
+                if path.history.is_empty() & (k != "Self") {
+                    eviction_path = Some(k.to_string());
+                }
+            }
 
-                    // clamp index if deletion
-                    let len = if paths.get_mut(displayed_path).unwrap().history.is_empty() {
-                        0
-                    } else {
-                        paths.get_mut(displayed_path).unwrap().history.len() - 1
-                    };
-                    *index = (*index).min(len);
-                });
+            // clamp index if deletion
+            let len = if paths.get_mut(displayed_path).unwrap().history.is_empty() {
+                0
+            } else {
+                paths.get_mut(displayed_path).unwrap().history.len() - 1
+            };
+            *index = (*index).min(len);
 
-            CollapsingHeader::new(RichText::new("Paths").heading())
-                .default_open(true)
-                .show(ui, |ui| {
-                    let mut eviction_path = None;
-                    for (k, path) in paths.iter_mut() {
-                        let mut eviction = None;
-                        let mut up = None;
-                        let mut down = None;
-                        let len = path.history.len();
-
-                        if k != "Self" {
-                            CollapsingHeader::new(RichText::new(k).heading()).show(ui, |ui| {
-                                ui.horizontal(|ui| {
-                                    if ui.button("❌").clicked() {
-                                        eviction_path = Some(k.to_string());
-                                    };
-                                    if ui.button("🗺").clicked() {
-                                        targets_path.insert(
-                                            k.to_owned(),
-                                            WidgetPath {
-                                                open: true,
-                                                index: 0,
-                                                history: path.clone(),
-                                                latitude: 0.0,
-                                                longitude: 0.0,
-                                                altitude: 0.0,
-                                                distance: 0.0,
-                                                heading: 0.0,
-                                            },
-                                        );
-                                    };
-
-                                    ui.color_edit_button_srgba(&mut path.color);
-
-                                    ui.add(
-                                        egui::DragValue::new(&mut path.radius)
-                                            .speed(0.1)
-                                            .clamp_range(0..=10),
-                                    );
-                                });
-
-                                for (i, p) in path.history.iter().enumerate() {
-                                    ui.horizontal(|ui| {
-                                        ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
-
-                                        if ui.button("❌").clicked() {
-                                            eviction = Some(i)
-                                        };
-                                        if ui.button("⏶").clicked() & (len > 1) {
-                                            up = Some(i);
-                                        };
-                                        if ui.button("⏷").clicked() & (len > 1) {
-                                            down = Some(i);
-                                        };
-
-                                        ui.label(&p.name);
-                                    });
-                                }
-                            });
-
-                            if let Some(i) = eviction {
-                                path.history.remove(i);
-                                if path.history.is_empty() {
-                                    eviction_path = Some(k.to_string());
-                                }
-                            } else if let Some(i) = up {
-                                let point = path.history.remove(i);
-                                path.history.insert(i.max(1) - 1, point)
-                            } else if let Some(i) = down {
-                                let point = path.history.remove(i);
-                                path.history.insert(i.min(len - 2) + 1, point)
-                            }
-                        }
-                    }
-
-                    if let Some(k) = eviction_path {
-                        paths.remove(&k);
-                    }
-                });
+            if let Some(k) = eviction_path {
+                paths.remove(&k);
+            }
         });
     }
+}
+
+pub fn display_path(
+    ui: &mut Ui,
+    path: &mut Path,
+    targets_path: &mut HashMap<String, WidgetPath>,
+) -> Option<String> {
+    let mut eviction = None;
+    let mut up = None;
+    let mut down = None;
+    let len = path.history.len();
+    let k = path.name.to_string();
+    let mut eviction_path = None;
+
+    let id = ui.make_persistent_id(k.to_string());
+    egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, false)
+        .show_header(ui, |ui| {
+            ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+
+            ui.heading(k.to_string());
+
+            if ui.button("❌").clicked() & (path.name != "Self") {
+                eviction_path = Some(k.to_string());
+            };
+            if ui.button("🗺").clicked() {
+                targets_path.insert(
+                    k.to_string(),
+                    WidgetPath {
+                        open: true,
+                        index: 0,
+                        history: k.to_string(),
+                        latitude: 0.0,
+                        longitude: 0.0,
+                        altitude: 0.0,
+                        distance: 0.0,
+                        heading: 0.0,
+                        duration: Duration::zero(),
+                        length: 0.0, //TODO better init ?
+                    },
+                );
+            };
+
+            ui.color_edit_button_srgba(&mut path.color);
+
+            ui.add(
+                egui::DragValue::new(&mut path.radius)
+                    .speed(0.1)
+                    .clamp_range(0..=10),
+            );
+        })
+        .body(|ui| {
+            for (i, p) in path.history.iter().enumerate() {
+                ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+                ui.horizontal(|ui| {
+                    ui.menu_button("⚙", |ui| {
+                        ui.horizontal(|ui| {
+                            ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+                            if ui.button("❌").clicked() {
+                                eviction = Some(i);
+                                ui.close_menu();
+                            };
+                            if ui.button("⌖").clicked() {
+                                targets_path.insert(
+                                    k.to_string(),
+                                    WidgetPath {
+                                        open: true,
+                                        index: i,
+                                        history: k.to_string(),
+                                        latitude: 0.0,
+                                        longitude: 0.0,
+                                        altitude: 0.0,
+                                        distance: 0.0,
+                                        heading: 0.0,
+                                        duration: Duration::zero(),
+                                        length: 0.0,
+                                    },
+                                );
+                                ui.close_menu();
+                            };
+                            // ui.color_edit_button_srgba(&mut path.color);
+                        });
+                    });
+
+                    if ui.button("⏶").clicked() & (len > 1) {
+                        up = Some(i);
+                    };
+                    if ui.button("⏷").clicked() & (len > 1) {
+                        down = Some(i);
+                    };
+                    ui.label(&p.name);
+                });
+            }
+        });
+    if let Some(i) = eviction {
+        path.history.remove(i);
+    } else if let Some(i) = up {
+        let point = path.history.remove(i);
+        path.history.insert(i.max(1) - 1, point)
+    } else if let Some(i) = down {
+        let point = path.history.remove(i);
+        path.history.insert(i.min(len - 2) + 1, point)
+    }
+
+    return eviction_path;
 }
 
 impl WidgetTarget {
@@ -463,9 +468,11 @@ impl WidgetTarget {
 }
 
 impl WidgetPath {
-    pub fn display(&mut self, ctx: &egui::Context) {
-        let current_point = &self.history.history[self.index];
-        egui::Window::new(format!("Path - {}", self.history.name))
+    pub fn display(&mut self, ctx: &egui::Context, paths: &HashMap<String, Path>) {
+        let path = paths.get(&self.history).unwrap();
+
+        let current_point = &path.history[self.index];
+        egui::Window::new(format!("Path - {}", self.history))
             .default_pos(Pos2::new(400.0, 800.0))
             .open(&mut self.open)
             .show(ctx, |ui| {
@@ -474,11 +481,10 @@ impl WidgetPath {
                         if ui.button("⏴").clicked() & (self.index > 0) {
                             self.index -= 1;
                         };
-                        if ui.button("⏵").clicked() & (self.index + 1 < self.history.history.len())
-                        {
+                        if ui.button("⏵").clicked() & (self.index + 1 < path.history.len()) {
                             self.index += 1;
                         };
-                        ui.heading(format!("{}/{}", self.index + 1, self.history.history.len()));
+                        ui.heading(format!("{}/{}", self.index + 1, path.history.len()));
                     });
                     ui.heading(&current_point.name);
 
@@ -500,6 +506,12 @@ impl WidgetPath {
                     ui.end_row();
                     ui.label("CIG Heading:");
                     ui.label(borked_cig_heading(self.heading));
+                    ui.end_row();
+                    ui.label("Duration:");
+                    ui.label(pretty_duration(self.duration));
+                    ui.end_row();
+                    ui.label("Lenght:");
+                    ui.label(format!("{:.3}km", self.length));
                     ui.end_row();
                 });
             });
