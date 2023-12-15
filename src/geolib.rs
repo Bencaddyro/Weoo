@@ -21,6 +21,7 @@ pub struct ProcessedPosition {
     pub latitude: f64,
     pub longitude: f64,
     pub altitude: f64,
+    pub color: Option<Color32>,
 }
 
 #[derive(Debug, Clone)]

@@ -5,8 +5,8 @@ use crate::{
 };
 use chrono::Duration;
 use egui::{
-    CollapsingHeader, Color32, ComboBox, Context, Grid, Pos2, RichText, TextEdit, TopBottomPanel,
-    Ui,
+    color_picker::color_picker_color32, CollapsingHeader, Color32, ComboBox, Context, Grid, Pos2,
+    RichText, TextEdit, TopBottomPanel, Ui,
 };
 use egui_plot::{Line, MarkerShape, Plot, Points};
 use std::collections::{BTreeMap, HashMap};
@@ -382,7 +382,7 @@ pub fn display_path(
             );
         })
         .body(|ui| {
-            for (i, p) in path.history.iter().enumerate() {
+            for (i, p) in path.history.iter_mut().enumerate() {
                 ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
                 ui.horizontal(|ui| {
                     ui.menu_button("⚙", |ui| {
@@ -410,8 +410,11 @@ pub fn display_path(
                                 );
                                 ui.close_menu();
                             };
-                            // ui.color_edit_button_srgba(&mut path.color);
                         });
+                        let mut color = p.color.unwrap_or_default();
+                        if color_picker_color32(ui, &mut color, egui::color_picker::Alpha::Opaque) {
+                            p.color = Some(color);
+                        }
                     });
 
                     if ui.button("⏶").clicked() & (len > 1) {
@@ -530,12 +533,7 @@ impl WidgetMap {
             // TODO get map from scdatatools
 
             Plot::new("my_plot")
-                // .min_size(Vec2::new(800.0,500.0))
                 .data_aspect(1.0)
-                // .x_axis_formatter(legend)
-                // .x_grid_spacer(grid)
-                // .y_axis_formatter(legend)
-                // .y_grid_spacer(grid)
                 .include_x(-180)
                 .include_x(180)
                 .include_y(90)
@@ -575,7 +573,7 @@ impl WidgetMap {
                                 Points::new(c)
                                     .name(p.name.clone())
                                     .radius(path.radius)
-                                    .color(path.color)
+                                    .color(p.color.unwrap_or(path.color))
                                     .shape(path.shape),
                             );
                         }
