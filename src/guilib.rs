@@ -521,6 +521,13 @@ impl WidgetPath {
     }
 }
 
+
+// TODO get current coordinates (see https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/demo/plot_demo.rs Ctrl+F InteractionDemo)
+// Event get input : https://docs.rs/egui/latest/egui/struct.PointerState.html#method.primary_clicked button mouse is clicked & mouse is IN PLOT -> get coordinates -> create point on current path
+// detect that mouse is hovering plot !
+
+
+
 impl WidgetMap {
     pub fn display(
         &mut self,
