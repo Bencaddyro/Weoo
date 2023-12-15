@@ -145,6 +145,7 @@ impl MyEguiApp {
             latitude,
             longitude,
             altitude,
+            color: None,
         };
 
         // add it to history
