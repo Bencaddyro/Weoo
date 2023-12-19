@@ -6,6 +6,7 @@ use crate::{
 };
 use chrono::prelude::*;
 use eframe::egui;
+use egui::Context;
 use geolib::{get_current_container, Path, ProcessedPosition, SpaceTimePosition};
 use mainlib::{WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition};
 use once_cell::sync::Lazy;
@@ -211,5 +212,20 @@ impl eframe::App for MyEguiApp {
 
         // Display Map
         self.map.display(ctx, &self.targets, &self.paths);
+
+
+        // IO mouse
+
+        clicy(ctx);
+
     }
+}
+
+
+pub fn clicy(ctx: &Context){
+
+    let cli = ctx.input(|p| {
+        p.pointer.primary_clicked()
+    });
+    println!("{cli:?}");
 }
