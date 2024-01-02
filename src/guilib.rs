@@ -312,7 +312,11 @@ impl WidgetTargets {
 
                 let mut eviction_path = None;
                 for (k, path) in paths.iter_mut() {
-                    eviction_path = display_path(ui, path, targets_path);
+                    let possible_eviction = display_path(ui, path, targets_path);
+                    match eviction_path {
+                        None => eviction_path=possible_eviction,
+                        Some(_) => (),
+                    }
 
                     if path.history.is_empty() & (k != "Self") {
                         eviction_path = Some(k.to_string());

@@ -228,6 +228,11 @@ impl eframe::App for MyEguiApp {
             )
         }
 
+        // Display targets_path
+        for w in self.targets_path.values_mut() {
+            w.display(ctx, &self.paths);
+        }
+
         // Display self position
         self.position.display(
             ctx,
@@ -247,10 +252,7 @@ impl eframe::App for MyEguiApp {
             &mut self.targets_path,
         );
 
-        // Display targets_path
-        for w in self.targets_path.values_mut() {
-            w.display(ctx, &self.paths);
-        }
+
 
         // Display Map
         let point = self.map.display(ctx, &self.targets, &self.paths);
