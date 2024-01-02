@@ -284,51 +284,53 @@ impl WidgetTargets {
         targets_path: &mut HashMap<String, WidgetPath>,
     ) {
         egui::SidePanel::left("my_left_panel").show(ctx, |ui| {
-            CollapsingHeader::new(RichText::new("Targets").heading())
-                .default_open(true)
-                .show(ui, |ui| {
-                    let mut eviction = Vec::new();
-                    for (i, e) in self.targets.iter_mut().enumerate() {
-                        ui.horizontal(|ui| {
-                            if ui.button("❌").clicked() {
-                                eviction.push(i);
-                            };
-                            if ui.button("👁").clicked() {
-                                e.open = !e.open;
-                            };
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                CollapsingHeader::new(RichText::new("Targets").heading())
+                    .default_open(true)
+                    .show(ui, |ui| {
+                        let mut eviction = Vec::new();
+                        for (i, e) in self.targets.iter_mut().enumerate() {
+                            ui.horizontal(|ui| {
+                                if ui.button("❌").clicked() {
+                                    eviction.push(i);
+                                };
+                                if ui.button("👁").clicked() {
+                                    e.open = !e.open;
+                                };
 
-                            ui.label(&e.target.name);
-                        });
+                                ui.label(&e.target.name);
+                            });
 
-                        e.display(ctx);
+                            e.display(ctx);
+                        }
+                        for i in eviction {
+                            self.targets.remove(i);
+                        }
+                    });
+
+                ui.heading("Paths");
+
+                let mut eviction_path = None;
+                for (k, path) in paths.iter_mut() {
+                    eviction_path = display_path(ui, path, targets_path);
+
+                    if path.history.is_empty() & (k != "Self") {
+                        eviction_path = Some(k.to_string());
                     }
-                    for i in eviction {
-                        self.targets.remove(i);
-                    }
-                });
-
-            ui.heading("Paths");
-
-            let mut eviction_path = None;
-            for (k, path) in paths.iter_mut() {
-                eviction_path = display_path(ui, path, targets_path);
-
-                if path.history.is_empty() & (k != "Self") {
-                    eviction_path = Some(k.to_string());
                 }
-            }
 
-            // clamp index if deletion
-            let len = if paths.get_mut(displayed_path).unwrap().history.is_empty() {
-                0
-            } else {
-                paths.get_mut(displayed_path).unwrap().history.len() - 1
-            };
-            *index = (*index).min(len);
+                // clamp index if deletion
+                let len = if paths.get_mut(displayed_path).unwrap().history.is_empty() {
+                    0
+                } else {
+                    paths.get_mut(displayed_path).unwrap().history.len() - 1
+                };
+                *index = (*index).min(len);
 
-            if let Some(k) = eviction_path {
-                paths.remove(&k);
-            }
+                if let Some(k) = eviction_path {
+                    paths.remove(&k);
+                }
+            });
         });
     }
 }
@@ -521,12 +523,9 @@ impl WidgetPath {
     }
 }
 
-
 // TODO get current coordinates (see https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/demo/plot_demo.rs Ctrl+F InteractionDemo)
 // Event get input : https://docs.rs/egui/latest/egui/struct.PointerState.html#method.primary_clicked button mouse is clicked & mouse is IN PLOT -> get coordinates -> create point on current path
 // detect that mouse is hovering plot !
-
-
 
 impl WidgetMap {
     pub fn display(
