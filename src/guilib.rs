@@ -526,22 +526,19 @@ impl WidgetPath {
     }
 }
 
-// TODO get current coordinates (see https://github.com/emilk/egui/blob/master/crates/egui_demo_lib/src/demo/plot_demo.rs Ctrl+F InteractionDemo)
-// Event get input : https://docs.rs/egui/latest/egui/struct.PointerState.html#method.primary_clicked button mouse is clicked & mouse is IN PLOT -> get coordinates -> create point on current path
-// detect that mouse is hovering plot !
-
 impl WidgetMap {
     pub fn display(
         &mut self,
         ctx: &egui::Context,
         targets: &WidgetTargets,
         paths: &HashMap<String, Path>,
-    ) {
+    ) -> Option<(f64, f64)> {
+        let mut res = None;
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Map");
             // TODO get map from scdatatools
 
-            Plot::new("my_plot")
+            let plot_response = Plot::new("my_plot")
                 .data_aspect(1.0)
                 .include_x(-180)
                 .include_x(180)
@@ -589,6 +586,21 @@ impl WidgetMap {
                         plot_ui.line(Line::new(point_path).name(k).width(1.5).color(path.color));
                     }
                 });
+
+            if plot_response
+                .response
+                .clicked_by(egui::PointerButton::Middle)
+            {
+                let new_point = plot_response
+                    .transform
+                    .value_from_position(ctx.pointer_interact_pos().unwrap_or_default());
+
+                let latitude = new_point.y.to_radians();
+                let longitude = new_point.x.to_radians();
+
+                res = Some((latitude, longitude));
+            }
         });
+        res
     }
 }
