@@ -6,12 +6,12 @@ use crate::{
 };
 use chrono::prelude::*;
 use eframe::egui;
-use geolib::{get_current_container, Path, ProcessedPosition, SpaceTimePosition};
+use geolib::{get_current_container, Path, ProcessedPosition, SpaceTimePosition, Vec3d};
 use mainlib::{WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition};
 use once_cell::sync::Lazy;
 use std::{
     collections::{BTreeMap, HashMap},
-    f64::NAN,
+    f64::{consts::PI, NAN},
 };
 use uuid::Uuid;
 
@@ -157,6 +157,49 @@ impl MyEguiApp {
             .push(new_position);
         self.index = self.paths.get_mut("Self").unwrap().history.len() - 1;
     }
+
+    pub fn new_coordinates_from_map(&mut self, point: Option<(f64, f64)>) {
+        if let Some((latitude, longitude)) = point {
+            let latitude = latitude.clamp(-PI, PI);
+
+            let container_name = "Daymar".to_string(); //TODO HardCode Daymar
+            let altitude = 295.0;
+
+            let timestamp = Utc::now();
+            let z = altitude * latitude.sin();
+            let x = -altitude * latitude.cos() * longitude.sin();
+            let y = altitude * latitude.cos() * longitude.cos();
+
+            let local_coordinates = Vec3d { x, y, z };
+
+            let space_time_position = SpaceTimePosition {
+                coordinates: Vec3d::default(),
+                timestamp,
+            };
+            let time_elapsed =
+                (timestamp - *REFERENCE_TIME).num_nanoseconds().unwrap() as f64 / 1e9;
+
+            let name = "# ".to_owned() + &Uuid::new_v4().to_string()[9..18].to_uppercase();
+
+            let new_position = ProcessedPosition {
+                space_time_position,
+                local_coordinates,
+                time_elapsed,
+                container_name,
+                name,
+                latitude,
+                longitude,
+                altitude,
+                color: None,
+            };
+
+            self.paths
+                .get_mut(&self.displayed_path)
+                .unwrap()
+                .history
+                .push(new_position);
+        }
+    }
 }
 
 impl eframe::App for MyEguiApp {
@@ -210,6 +253,9 @@ impl eframe::App for MyEguiApp {
         }
 
         // Display Map
-        self.map.display(ctx, &self.targets, &self.paths);
+        let point = self.map.display(ctx, &self.targets, &self.paths);
+
+        // Add new point from I/O on map
+        self.new_coordinates_from_map(point)
     }
 }

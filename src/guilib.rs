@@ -284,51 +284,53 @@ impl WidgetTargets {
         targets_path: &mut HashMap<String, WidgetPath>,
     ) {
         egui::SidePanel::left("my_left_panel").show(ctx, |ui| {
-            CollapsingHeader::new(RichText::new("Targets").heading())
-                .default_open(true)
-                .show(ui, |ui| {
-                    let mut eviction = Vec::new();
-                    for (i, e) in self.targets.iter_mut().enumerate() {
-                        ui.horizontal(|ui| {
-                            if ui.button("❌").clicked() {
-                                eviction.push(i);
-                            };
-                            if ui.button("👁").clicked() {
-                                e.open = !e.open;
-                            };
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                CollapsingHeader::new(RichText::new("Targets").heading())
+                    .default_open(true)
+                    .show(ui, |ui| {
+                        let mut eviction = Vec::new();
+                        for (i, e) in self.targets.iter_mut().enumerate() {
+                            ui.horizontal(|ui| {
+                                if ui.button("❌").clicked() {
+                                    eviction.push(i);
+                                };
+                                if ui.button("👁").clicked() {
+                                    e.open = !e.open;
+                                };
 
-                            ui.label(&e.target.name);
-                        });
+                                ui.label(&e.target.name);
+                            });
 
-                        e.display(ctx);
+                            e.display(ctx);
+                        }
+                        for i in eviction {
+                            self.targets.remove(i);
+                        }
+                    });
+
+                ui.heading("Paths");
+
+                let mut eviction_path = None;
+                for (k, path) in paths.iter_mut() {
+                    eviction_path = display_path(ui, path, targets_path);
+
+                    if path.history.is_empty() & (k != "Self") {
+                        eviction_path = Some(k.to_string());
                     }
-                    for i in eviction {
-                        self.targets.remove(i);
-                    }
-                });
-
-            ui.heading("Paths");
-
-            let mut eviction_path = None;
-            for (k, path) in paths.iter_mut() {
-                eviction_path = display_path(ui, path, targets_path);
-
-                if path.history.is_empty() & (k != "Self") {
-                    eviction_path = Some(k.to_string());
                 }
-            }
 
-            // clamp index if deletion
-            let len = if paths.get_mut(displayed_path).unwrap().history.is_empty() {
-                0
-            } else {
-                paths.get_mut(displayed_path).unwrap().history.len() - 1
-            };
-            *index = (*index).min(len);
+                // clamp index if deletion
+                let len = if paths.get_mut(displayed_path).unwrap().history.is_empty() {
+                    0
+                } else {
+                    paths.get_mut(displayed_path).unwrap().history.len() - 1
+                };
+                *index = (*index).min(len);
 
-            if let Some(k) = eviction_path {
-                paths.remove(&k);
-            }
+                if let Some(k) = eviction_path {
+                    paths.remove(&k);
+                }
+            });
         });
     }
 }
@@ -388,10 +390,7 @@ pub fn display_path(
                     ui.menu_button("⚙", |ui| {
                         ui.horizontal(|ui| {
                             ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
-                            if ui.button("❌").clicked() {
-                                eviction = Some(i);
-                                ui.close_menu();
-                            };
+
                             if ui.button("⌖").clicked() {
                                 targets_path.insert(
                                     k.to_string(),
@@ -411,12 +410,18 @@ pub fn display_path(
                                 ui.close_menu();
                             };
                         });
-                        let mut color = p.color.unwrap_or_default();
-                        if color_picker_color32(ui, &mut color, egui::color_picker::Alpha::Opaque) {
+                        let mut color = p.color.unwrap_or(path.color);
+
+                        let color_changed =
+                            color_picker_color32(ui, &mut color, egui::color_picker::Alpha::Opaque);
+                        if color_changed {
                             p.color = Some(color);
                         }
                     });
-
+                    if ui.button("❌").clicked() {
+                        eviction = Some(i);
+                        ui.close_menu();
+                    };
                     if ui.button("⏶").clicked() & (len > 1) {
                         up = Some(i);
                     };
@@ -527,12 +532,13 @@ impl WidgetMap {
         ctx: &egui::Context,
         targets: &WidgetTargets,
         paths: &HashMap<String, Path>,
-    ) {
+    ) -> Option<(f64, f64)> {
+        let mut res = None;
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Map");
             // TODO get map from scdatatools
 
-            Plot::new("my_plot")
+            let plot_response = Plot::new("my_plot")
                 .data_aspect(1.0)
                 .include_x(-180)
                 .include_x(180)
@@ -580,6 +586,21 @@ impl WidgetMap {
                         plot_ui.line(Line::new(point_path).name(k).width(1.5).color(path.color));
                     }
                 });
+
+            if plot_response
+                .response
+                .clicked_by(egui::PointerButton::Middle)
+            {
+                let new_point = plot_response
+                    .transform
+                    .value_from_position(ctx.pointer_interact_pos().unwrap_or_default());
+
+                let latitude = new_point.y.to_radians();
+                let longitude = new_point.x.to_radians();
+
+                res = Some((latitude, longitude));
+            }
         });
+        res
     }
 }
