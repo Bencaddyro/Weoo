@@ -390,10 +390,7 @@ pub fn display_path(
                     ui.menu_button("⚙", |ui| {
                         ui.horizontal(|ui| {
                             ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
-                            if ui.button("❌").clicked() {
-                                eviction = Some(i);
-                                ui.close_menu();
-                            };
+
                             if ui.button("⌖").clicked() {
                                 targets_path.insert(
                                     k.to_string(),
@@ -413,12 +410,18 @@ pub fn display_path(
                                 ui.close_menu();
                             };
                         });
-                        let mut color = p.color.unwrap_or_default();
-                        if color_picker_color32(ui, &mut color, egui::color_picker::Alpha::Opaque) {
+                        let mut color = p.color.unwrap_or(path.color);
+
+                        let color_changed =
+                            color_picker_color32(ui, &mut color, egui::color_picker::Alpha::Opaque);
+                        if color_changed {
                             p.color = Some(color);
                         }
                     });
-
+                    if ui.button("❌").clicked() {
+                        eviction = Some(i);
+                        ui.close_menu();
+                    };
                     if ui.button("⏶").clicked() & (len > 1) {
                         up = Some(i);
                     };
