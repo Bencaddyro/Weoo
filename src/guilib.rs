@@ -314,7 +314,7 @@ impl WidgetTargets {
                 for (k, path) in paths.iter_mut() {
                     let possible_eviction = display_path(ui, path, targets_path);
                     match eviction_path {
-                        None => eviction_path=possible_eviction,
+                        None => eviction_path = possible_eviction,
                         Some(_) => (),
                     }
 
@@ -432,7 +432,16 @@ pub fn display_path(
                     if ui.button("⏷").clicked() & (len > 1) {
                         down = Some(i);
                     };
-                    ui.label(&p.name);
+
+                    if let Some(index) = targets_path.get(&path.name).map(|p| p.index) {
+                        if index == i {
+                            ui.label(RichText::new(&p.name).strong());
+                        } else {
+                            ui.label(&p.name);
+                        }
+                    } else {
+                        ui.label(&p.name);
+                    }
                 });
             }
         });
@@ -536,6 +545,7 @@ impl WidgetMap {
         ctx: &egui::Context,
         targets: &WidgetTargets,
         paths: &HashMap<String, Path>,
+        widget_path: &HashMap<String, WidgetPath>,
     ) -> Option<(f64, f64)> {
         let mut res = None;
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -573,19 +583,50 @@ impl WidgetMap {
                     // Construct & display all path !
                     for (k, path) in paths {
                         let mut point_path = Vec::new();
-                        for p in &path.history {
+
+                        let index = widget_path.get(k).map(|w| w.index);
+
+                        for (i, p) in path.history.iter().enumerate() {
                             let c = [
                                 p.local_coordinates.longitude().to_degrees(),
                                 p.local_coordinates.latitude().to_degrees(),
                             ];
                             point_path.push(c);
-                            plot_ui.points(
-                                Points::new(c)
-                                    .name(p.name.clone())
-                                    .radius(path.radius)
-                                    .color(p.color.unwrap_or(path.color))
-                                    .shape(path.shape),
-                            );
+                            if let Some(real_i) = index {
+                                if real_i == i {
+                                    // let highlight_color = Color32::from_rgb(
+                                    //      rand::thread_rng().gen(),
+                                    //      rand::thread_rng().gen(),
+                                    //      rand::thread_rng().gen(),
+                                    //  );
+
+                                    plot_ui.points(
+                                        Points::new(c)
+                                            .name(p.name.clone())
+                                            .radius(path.radius)
+                                            // .color(highlight_color)
+                                            .color(p.color.unwrap_or(path.color))
+                                            .shape(path.shape)
+                                            .highlight(true),
+                                    );
+                                } else {
+                                    plot_ui.points(
+                                        Points::new(c)
+                                            .name(p.name.clone())
+                                            .radius(path.radius)
+                                            .color(p.color.unwrap_or(path.color))
+                                            .shape(path.shape),
+                                    );
+                                }
+                            } else {
+                                plot_ui.points(
+                                    Points::new(c)
+                                        .name(p.name.clone())
+                                        .radius(path.radius)
+                                        .color(p.color.unwrap_or(path.color))
+                                        .shape(path.shape),
+                                );
+                            }
                         }
                         plot_ui.line(Line::new(point_path).name(k).width(1.5).color(path.color));
                     }

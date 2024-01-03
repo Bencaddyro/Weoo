@@ -252,10 +252,10 @@ impl eframe::App for MyEguiApp {
             &mut self.targets_path,
         );
 
-
-
         // Display Map
-        let point = self.map.display(ctx, &self.targets, &self.paths);
+        let point = self
+            .map
+            .display(ctx, &self.targets, &self.paths, &self.targets_path);
 
         // Add new point from I/O on map
         self.new_coordinates_from_map(point)
