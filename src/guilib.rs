@@ -6,9 +6,9 @@ use crate::{
 use chrono::Duration;
 use egui::{
     color_picker::color_picker_color32, CollapsingHeader, Color32, ComboBox, Context, Grid, Pos2,
-    RichText, TextEdit, TopBottomPanel, Ui,
+    RichText, TextBuffer, TextEdit, TopBottomPanel, Ui,
 };
-use egui_plot::{Line, MarkerShape, Plot, Points};
+use egui_plot::{Line, MarkerShape, Plot, PlotPoint, Points};
 use std::collections::{BTreeMap, HashMap};
 
 pub fn pretty(a: f64) -> String {
@@ -539,13 +539,15 @@ impl WidgetPath {
     }
 }
 
+static mut SMARTY: String = String::new();
+
 impl WidgetMap {
     pub fn display(
         &mut self,
         ctx: &egui::Context,
         targets: &WidgetTargets,
         paths: &HashMap<String, Path>,
-        widget_path: &HashMap<String, WidgetPath>,
+        widget_path: &mut HashMap<String, WidgetPath>,
     ) -> Option<(f64, f64)> {
         let mut res = None;
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -559,6 +561,9 @@ impl WidgetMap {
                 .include_y(90)
                 .include_y(-90)
                 .label_formatter(|name, value| {
+                    unsafe {
+                        SMARTY = name.to_string();
+                    }
                     if !name.is_empty() {
                         format!(
                             "{name}\n{}\n{}",
@@ -632,7 +637,6 @@ impl WidgetMap {
                     }
                 });
 
-
             let snapped_point: String;
             unsafe {
                 snapped_point = SMARTY.clone();
@@ -670,6 +674,7 @@ impl WidgetMap {
                 }
             }
             }
+
             if plot_response
                 .response
                 .clicked_by(egui::PointerButton::Middle)
