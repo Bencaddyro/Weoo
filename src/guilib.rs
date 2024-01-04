@@ -11,6 +11,8 @@ use egui::{
 use egui_plot::{Line, MarkerShape, Plot, Points};
 use std::collections::{BTreeMap, HashMap};
 
+static mut SMARTY: String = String::new(); // Dirty (but working way) too get snapped point on graph see https://github.com/emilk/egui/discussions/1778
+
 pub fn pretty(a: f64) -> String {
     let degrees = a.to_degrees().trunc();
     let minutes = (a.to_degrees().fract() * 60.0).trunc().abs();
@@ -545,7 +547,7 @@ impl WidgetMap {
         ctx: &egui::Context,
         targets: &WidgetTargets,
         paths: &HashMap<String, Path>,
-        widget_path: &HashMap<String, WidgetPath>,
+        widget_path: &mut HashMap<String, WidgetPath>,
     ) -> Option<(f64, f64)> {
         let mut res = None;
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -559,6 +561,9 @@ impl WidgetMap {
                 .include_y(90)
                 .include_y(-90)
                 .label_formatter(|name, value| {
+                    unsafe {
+                        SMARTY = name.to_string();
+                    }
                     if !name.is_empty() {
                         format!(
                             "{name}\n{}\n{}",
@@ -631,6 +636,43 @@ impl WidgetMap {
                         plot_ui.line(Line::new(point_path).name(k).width(1.5).color(path.color));
                     }
                 });
+
+            let snapped_point: String;
+            unsafe {
+                snapped_point = SMARTY.clone();
+                SMARTY = String::new();
+            }
+
+            if plot_response
+                .response
+                .clicked_by(egui::PointerButton::Primary)
+            {
+                for path in paths {
+                    for (i, point) in path.1.history.iter().enumerate() {
+                        if point.name == snapped_point {
+                            if let Some(w_path) = widget_path.get_mut(path.0) {
+                                w_path.index = i;
+                            } else {
+                                widget_path.insert(
+                                    path.0.to_string(),
+                                    WidgetPath {
+                                        open: true,
+                                        index: i,
+                                        history: path.0.to_string(),
+                                        latitude: 0.0,
+                                        longitude: 0.0,
+                                        altitude: 0.0,
+                                        distance: 0.0,
+                                        heading: 0.0,
+                                        duration: Duration::zero(),
+                                        length: 0.0,
+                                    },
+                                );
+                            }
+                        }
+                    }
+                }
+            }
 
             if plot_response
                 .response

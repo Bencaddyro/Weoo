@@ -37,7 +37,7 @@ pub struct WidgetTarget {
 pub struct WidgetPath {
     pub open: bool,
     pub index: usize,
-    pub history: String,
+    pub history: String, //path name
     pub latitude: f64,
     pub longitude: f64,
     pub altitude: f64,
