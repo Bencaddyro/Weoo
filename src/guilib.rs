@@ -6,10 +6,12 @@ use crate::{
 use chrono::Duration;
 use egui::{
     color_picker::color_picker_color32, CollapsingHeader, Color32, ComboBox, Context, Grid, Pos2,
-    RichText, TextBuffer, TextEdit, TopBottomPanel, Ui,
+    RichText, TextEdit, TopBottomPanel, Ui,
 };
-use egui_plot::{Line, MarkerShape, Plot, PlotPoint, Points};
+use egui_plot::{Line, MarkerShape, Plot, Points};
 use std::collections::{BTreeMap, HashMap};
+
+static mut SMARTY: String = String::new(); // Dirty (but working way) too get snapped point on graph see https://github.com/emilk/egui/discussions/1778
 
 pub fn pretty(a: f64) -> String {
     let degrees = a.to_degrees().trunc();
@@ -539,8 +541,6 @@ impl WidgetPath {
     }
 }
 
-static mut SMARTY: String = String::new();
-
 impl WidgetMap {
     pub fn display(
         &mut self,
@@ -647,14 +647,14 @@ impl WidgetMap {
                 .response
                 .clicked_by(egui::PointerButton::Primary)
             {
-            for path in paths {
-                for (i, point) in path.1.history.iter().enumerate() {
-                    if point.name == snapped_point {
-                        if let Some(w_path) = widget_path.get_mut(path.0) { w_path.index = i;
-
-                        } else {
-                            widget_path.insert(
-                                path.0.to_string(),
+                for path in paths {
+                    for (i, point) in path.1.history.iter().enumerate() {
+                        if point.name == snapped_point {
+                            if let Some(w_path) = widget_path.get_mut(path.0) {
+                                w_path.index = i;
+                            } else {
+                                widget_path.insert(
+                                    path.0.to_string(),
                                     WidgetPath {
                                         open: true,
                                         index: i,
@@ -666,13 +666,12 @@ impl WidgetMap {
                                         heading: 0.0,
                                         duration: Duration::zero(),
                                         length: 0.0,
-                                    }
-                            );
-
+                                    },
+                                );
+                            }
                         }
                     }
                 }
-            }
             }
 
             if plot_response
