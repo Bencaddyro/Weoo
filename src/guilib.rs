@@ -632,6 +632,44 @@ impl WidgetMap {
                     }
                 });
 
+
+            let snapped_point: String;
+            unsafe {
+                snapped_point = SMARTY.clone();
+                SMARTY = String::new();
+            }
+
+            if plot_response
+                .response
+                .clicked_by(egui::PointerButton::Primary)
+            {
+            for path in paths {
+                for (i, point) in path.1.history.iter().enumerate() {
+                    if point.name == snapped_point {
+                        if let Some(w_path) = widget_path.get_mut(path.0) { w_path.index = i;
+
+                        } else {
+                            widget_path.insert(
+                                path.0.to_string(),
+                                    WidgetPath {
+                                        open: true,
+                                        index: i,
+                                        history: path.0.to_string(),
+                                        latitude: 0.0,
+                                        longitude: 0.0,
+                                        altitude: 0.0,
+                                        distance: 0.0,
+                                        heading: 0.0,
+                                        duration: Duration::zero(),
+                                        length: 0.0,
+                                    }
+                            );
+
+                        }
+                    }
+                }
+            }
+            }
             if plot_response
                 .response
                 .clicked_by(egui::PointerButton::Middle)
