@@ -599,18 +599,18 @@ impl WidgetMap {
                             point_path.push(c);
                             if let Some(real_i) = index {
                                 if real_i == i {
-                                    // let highlight_color = Color32::from_rgb(
-                                    //      rand::thread_rng().gen(),
-                                    //      rand::thread_rng().gen(),
-                                    //      rand::thread_rng().gen(),
-                                    //  );
+                                    let highlight_color = Color32::from_rgb(
+                                    255 - path.color.r(),
+255 - path.color.g(),
+                                                                            255 - path.color.b(),
+                                      );
 
                                     plot_ui.points(
                                         Points::new(c)
                                             .name(p.name.clone())
                                             .radius(path.radius)
-                                            // .color(highlight_color)
-                                            .color(p.color.unwrap_or(path.color))
+                                            .color(highlight_color)
+                                            // .color(p.color.unwrap_or(path.color))
                                             .shape(path.shape)
                                             .highlight(true),
                                     );
