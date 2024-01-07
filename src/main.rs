@@ -149,13 +149,28 @@ impl MyEguiApp {
         };
 
         // add it to history
-        self.displayed_path = "Self".to_string();
-        self.paths
-            .get_mut("Self")
-            .unwrap()
-            .history
-            .push(new_position);
-        self.index = self.paths.get_mut("Self").unwrap().history.len() - 1;
+
+        if self.position.auto_add_point {
+            // self.displayed_path = "Self".to_string();
+
+            let position = if self
+                .paths
+                .get(&self.displayed_path)
+                .unwrap()
+                .history
+                .is_empty()
+            {
+                0
+            } else {
+                self.index + 1
+            };
+            self.paths
+                .get_mut(&self.displayed_path)
+                .unwrap()
+                .history
+                .insert(position, new_position);
+            self.index += 1; // self.paths.get_mut(self.displayed_path).unwrap().history.len() - 1;
+        }
     }
 
     pub fn new_coordinates_from_map(&mut self, point: Option<(f64, f64)>) {
