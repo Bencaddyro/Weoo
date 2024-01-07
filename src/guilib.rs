@@ -75,7 +75,11 @@ impl WidgetTopPosition {
         targets: &mut WidgetTargets,
         paths: &mut HashMap<String, Path>,
     ) {
-        let len = paths.get_mut(displayed_path).unwrap().history.len();
+        let len = if let Some(path) = paths.get_mut(displayed_path) {
+            path.history.len()
+        } else {
+            0
+        };
 
         TopBottomPanel::top("top_panel").show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -258,18 +262,19 @@ impl WidgetTopPosition {
                                 }
                             });
                         ui.end_row();
-
-                        if ui.button("Add Target").clicked()
-                            & database.contains_key(&self.target_poi.container)
-                        {
-                            targets.targets.push(
-                                // TODO avoid duplicate
-                                WidgetTarget::new(self.target_poi.clone(), database),
-                            );
-                        };
-
-                        ui.end_row();
                     });
+                    if ui.button("Add Target").clicked()
+                        & database.contains_key(&self.target_poi.container)
+                    {
+                        targets.targets.push(
+                            // TODO avoid duplicate
+                            WidgetTarget::new(self.target_poi.clone(), database),
+                        );
+                    };
+
+                    ui.label("---------------------------");
+
+                    ui.checkbox(&mut self.auto_add_point, "Auto add point");
                 });
             });
         });
@@ -492,52 +497,52 @@ impl WidgetTarget {
 
 impl WidgetPath {
     pub fn display(&mut self, ctx: &egui::Context, paths: &HashMap<String, Path>) {
-        let path = paths.get(&self.history).unwrap();
+        if let Some(path) = paths.get(&self.history) {
+            let current_point = &path.history[self.index];
+            egui::Window::new(format!("Path - {}", self.history))
+                .default_pos(Pos2::new(400.0, 800.0))
+                .open(&mut self.open)
+                .show(ctx, |ui| {
+                    egui::Grid::new("MainGrid").show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            if ui.button("⏴").clicked() & (self.index > 0) {
+                                self.index -= 1;
+                            };
+                            if ui.button("⏵").clicked() & (self.index + 1 < path.history.len()) {
+                                self.index += 1;
+                            };
+                            ui.heading(format!("{}/{}", self.index + 1, path.history.len()));
+                        });
+                        ui.heading(&current_point.name);
 
-        let current_point = &path.history[self.index];
-        egui::Window::new(format!("Path - {}", self.history))
-            .default_pos(Pos2::new(400.0, 800.0))
-            .open(&mut self.open)
-            .show(ctx, |ui| {
-                egui::Grid::new("MainGrid").show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        if ui.button("⏴").clicked() & (self.index > 0) {
-                            self.index -= 1;
-                        };
-                        if ui.button("⏵").clicked() & (self.index + 1 < path.history.len()) {
-                            self.index += 1;
-                        };
-                        ui.heading(format!("{}/{}", self.index + 1, path.history.len()));
+                        ui.end_row();
+                        ui.label("Latitute:");
+                        ui.label(pretty(current_point.latitude));
+                        ui.end_row();
+                        ui.label("Longitude:");
+                        ui.label(pretty(current_point.longitude));
+                        ui.end_row();
+                        ui.label("Altitude:");
+                        ui.label(format!("{:.3}km", current_point.altitude));
+                        ui.end_row();
+                        ui.label("Distance:");
+                        ui.label(format!("{:.3}km", self.distance));
+                        ui.end_row();
+                        ui.label("Heading:");
+                        ui.label(pretty(self.heading));
+                        ui.end_row();
+                        ui.label("CIG Heading:");
+                        ui.label(borked_cig_heading(self.heading));
+                        ui.end_row();
+                        ui.label("Duration:");
+                        ui.label(pretty_duration(self.duration));
+                        ui.end_row();
+                        ui.label("Lenght:");
+                        ui.label(format!("{:.3}km", self.length));
+                        ui.end_row();
                     });
-                    ui.heading(&current_point.name);
-
-                    ui.end_row();
-                    ui.label("Latitute:");
-                    ui.label(pretty(current_point.latitude));
-                    ui.end_row();
-                    ui.label("Longitude:");
-                    ui.label(pretty(current_point.longitude));
-                    ui.end_row();
-                    ui.label("Altitude:");
-                    ui.label(format!("{:.3}km", current_point.altitude));
-                    ui.end_row();
-                    ui.label("Distance:");
-                    ui.label(format!("{:.3}km", self.distance));
-                    ui.end_row();
-                    ui.label("Heading:");
-                    ui.label(pretty(self.heading));
-                    ui.end_row();
-                    ui.label("CIG Heading:");
-                    ui.label(borked_cig_heading(self.heading));
-                    ui.end_row();
-                    ui.label("Duration:");
-                    ui.label(pretty_duration(self.duration));
-                    ui.end_row();
-                    ui.label("Lenght:");
-                    ui.label(format!("{:.3}km", self.length));
-                    ui.end_row();
                 });
-            });
+        }
     }
 }
 
@@ -600,10 +605,10 @@ impl WidgetMap {
                             if let Some(real_i) = index {
                                 if real_i == i {
                                     let highlight_color = Color32::from_rgb(
-                                    255 - path.color.r(),
-255 - path.color.g(),
-                                                                            255 - path.color.b(),
-                                      );
+                                        255 - path.color.r(),
+                                        255 - path.color.g(),
+                                        255 - path.color.b(),
+                                    );
 
                                     plot_ui.points(
                                         Points::new(c)
