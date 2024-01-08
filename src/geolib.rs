@@ -89,13 +89,14 @@ impl Vec3d {
             .acos()
             .to_degrees()
     }
+    // angle is radian !
     pub fn rotate(&self, angle: f64) -> Vec3d {
         let angle = if angle.is_nan() { 0.0 } else { angle };
-        Vec3d::new(
-            angle.cos() * self.x - angle.sin() * self.y,
-            angle.sin() * self.x + angle.cos() * self.y,
-            self.z,
-        )
+        Vec3d {
+            x: angle.cos() * self.x - angle.sin() * self.y,
+            y: angle.sin() * self.x + angle.cos() * self.y,
+            z: self.z,
+        }
     }
     pub fn latitude(&self) -> f64 {
         (self.z / self.norm()).asin()
@@ -103,8 +104,8 @@ impl Vec3d {
     pub fn longitude(&self) -> f64 {
         self.x.atan2(self.y) * -1.0
     }
-    pub fn altitude(&self, container: &Container) -> f64 {
-        self.norm() - container.radius_body
+    pub fn altitude(&self, sea_level: f64) -> f64 {
+        self.norm() - sea_level
     }
 
     pub fn transform_to_local(&self, time_elapsed: f64, container: &Container) -> Vec3d {

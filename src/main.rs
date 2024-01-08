@@ -1,14 +1,14 @@
 // #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
-use crate::{
-    geolib::Container,
-    iolib::{get_space_time_position, load_database},
-};
+use crate::{geolib::Container, iolib::load_database};
+use arboard::Clipboard;
 use chrono::prelude::*;
 use eframe::egui;
+
 use geolib::{get_current_container, Path, ProcessedPosition, SpaceTimePosition, Vec3d};
-use mainlib::{WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition};
+use mainlib::{WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition, Target};
 use once_cell::sync::Lazy;
+use regex::Regex;
 use std::{
     collections::{BTreeMap, HashMap},
     f64::{consts::PI, NAN},
@@ -22,7 +22,7 @@ mod mainlib;
 
 // Somewhere on Daymar
 // Coordinates: x:-18930379393.98 y:-2610297380.75 z:210614.307494
-// Coordinates: x:-18930479393.98 y:-2610297380.75 z:210614.307494
+// Coordinates: x:-18930379393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930579393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930679393.98 y:-2610297380.75 z:210614.307494
 // Coordinates: x:-18930779393.98 y:-2610297380.75 z:210614.307494
@@ -39,22 +39,42 @@ fn main() -> eframe::Result<()> {
     )
 }
 
-#[derive(Default)]
+type Paths = HashMap<String, Path>;
+type Targets = Vec<Target>;
+
+// #[derive(Default)]
 struct MyEguiApp {
+    // IO
+    clipboard: Clipboard,
+    space_time_position: SpaceTimePosition,
+    path_name_io: String,
+
     // Data
     database: BTreeMap<String, Container>,
-    space_time_position: SpaceTimePosition,
 
     // App State
-    index: usize,
-    paths: HashMap<String, Path>,
-    displayed_path: String,
+
+    // Point history, Store all IO point from clipboard of map Input
+    global_history_index: usize,
+    global_history: Vec<ProcessedPosition>,
+    global_paths: Paths,
+    global_targets: Targets,
+
+    path_selector: String,
+
+    target_selector_poi: String,
+    target_selector_container: String,
+
+    // ---------------------- OLD
+    index: usize, // TODO impl index on Path
+    paths: HashMap<String, Path>, //check
+    displayed_path: String, //check
 
     // Gui component
-    position: WidgetTopPosition,
-    targets: WidgetTargets,
-    map: WidgetMap,
-    targets_path: HashMap<String, WidgetPath>,
+    position: WidgetTopPosition, //check
+    targets: WidgetTargets, //check
+    map: WidgetMap, //nothing here //TODO still need to be draw !
+    targets_path: HashMap<String, WidgetPath>, //TODO widgetpath  need to be draw from Path
 }
 
 impl MyEguiApp {
@@ -101,12 +121,36 @@ impl MyEguiApp {
             WidgetTarget::new(target3, &database),
         ];
 
+        let clipboard = match Clipboard::new() {
+            Ok(clipboard) => clipboard,
+            Err(e) => panic!("Error fetching clipoard: {e}"),
+        };
+
         MyEguiApp {
             database,
             targets: WidgetTargets::new(targets),
             paths: HashMap::from([("Self".to_string(), Path::new())]),
             displayed_path: "Self".to_owned(),
-            ..Default::default()
+            clipboard,
+            position: WidgetTopPosition::default(),
+            space_time_position: SpaceTimePosition::default(),
+            map: WidgetMap::default(),
+            targets_path: HashMap::default(),
+            index: 0,
+
+            path_name_io: String::new(),
+            global_history_index: 0,
+            global_history: Vec::new(),
+            global_paths: HashMap::new(),
+            global_targets: Vec::new(),
+            path_selector: String::new(),
+            target_selector_poi: String::new(),
+            target_selector_container: String::new(),
+
+
+
+
+
         }
     }
 
@@ -127,7 +171,7 @@ impl MyEguiApp {
         if container.name != "Space" {
             latitude = local_coordinates.latitude();
             longitude = local_coordinates.longitude();
-            altitude = local_coordinates.altitude(&container);
+            altitude = local_coordinates.altitude(container.radius_body);
         } else {
             latitude = NAN;
             longitude = NAN;
@@ -200,11 +244,37 @@ impl MyEguiApp {
                 .push(new_position);
         }
     }
+
+    fn get_space_time_position(&mut self) -> Option<SpaceTimePosition> {
+        let content = match self.clipboard.get_text() {
+            Ok(content) => content,
+            Err(e) => {
+                println!("Error fetching clipoard: {e}");
+                String::new()
+            }
+        };
+        let timestamp = Utc::now();
+
+        let re = Regex::new(
+        r"Coordinates: x:(?<x>-?[0-9]+\.[0-9]+) y:(?<y>-?[0-9]+\.[0-9]+) z:(?<z>-?[0-9]+\.[0-9]+)",
+    )
+    .unwrap();
+        let caps = re.captures(&content)?;
+        let coordinates = Vec3d::new(
+            caps["x"].parse::<f64>().unwrap() / 1000.0,
+            caps["y"].parse::<f64>().unwrap() / 1000.0,
+            caps["z"].parse::<f64>().unwrap() / 1000.0,
+        );
+        Some(SpaceTimePosition {
+            coordinates,
+            timestamp,
+        })
+    }
 }
 
 impl eframe::App for MyEguiApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        if let Some(space_time_position_input) = get_space_time_position() {
+        if let Some(space_time_position_input) = self.get_space_time_position() {
             if space_time_position_input.coordinates != self.space_time_position.coordinates {
                 // New Input !
                 self.space_time_position = space_time_position_input;
