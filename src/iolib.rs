@@ -1,38 +1,6 @@
-use crate::geolib::{Container, Poi, ProcessedPosition, SpaceTimePosition, Vec3d, Vec4d};
-use arboard::Clipboard;
-use chrono::Utc;
-use regex::Regex;
+use crate::geolib::{Container, Poi, ProcessedPosition, Vec3d, Vec4d};
 use std::collections::{BTreeMap, HashMap};
 use std::fs::{self, File};
-
-fn get_clipboard() -> String {
-    let Ok(mut clipboard) = Clipboard::new() else {
-        return "".to_string();
-    };
-    let Ok(content) = clipboard.get_text() else {
-        return "".to_string();
-    };
-    content
-}
-pub fn get_space_time_position() -> Option<SpaceTimePosition> {
-    let s = get_clipboard();
-    let timestamp = Utc::now();
-
-    let re = Regex::new(
-        r"Coordinates: x:(?<x>-?[0-9]+\.[0-9]+) y:(?<y>-?[0-9]+\.[0-9]+) z:(?<z>-?[0-9]+\.[0-9]+)",
-    )
-    .unwrap();
-    let caps = re.captures(&s)?;
-    let coordinates = Vec3d::new(
-        caps["x"].parse::<f64>().unwrap() / 1000.0,
-        caps["y"].parse::<f64>().unwrap() / 1000.0,
-        caps["z"].parse::<f64>().unwrap() / 1000.0,
-    );
-    Some(SpaceTimePosition {
-        coordinates,
-        timestamp,
-    })
-}
 
 pub fn load_database() -> BTreeMap<String, Container> {
     // Database.json
@@ -141,20 +109,20 @@ pub fn load_database() -> BTreeMap<String, Container> {
     containers
 }
 
-pub fn save_history(name: &String, position_history: &Vec<ProcessedPosition>) {
-    let mut file = File::create(format!("{name}.json")).expect("This should work");
+pub fn save_history(filename: &String, position_history: &Vec<ProcessedPosition>) {
+    let mut file = File::create(format!("{filename}.json")).expect("This should work");
     serde_json::to_writer_pretty(&mut file, &position_history)
-        .unwrap_or_else(|_| panic!("Fail to write {name}.json"))
+        .unwrap_or_else(|_| panic!("Fail to write {filename}.json"))
 }
 
-pub fn import_history(name: &String) -> Vec<ProcessedPosition> {
-    if let Ok(file) = File::open(format!("{name}.json")) {
+pub fn import_history(filename: &String) -> Vec<ProcessedPosition> {
+    if let Ok(file) = File::open(format!("{filename}.json")) {
         serde_json::from_reader(file).unwrap_or_else(|_| {
-            println!("Fail to parse {name}.json, incorrect format");
+            println!("Fail to parse {filename}.json, incorrect format");
             Vec::new()
         })
     } else {
-        println!("Fail to open {name}.json, no file");
+        println!("Fail to open {filename}.json, no file");
         Vec::new()
     }
 }

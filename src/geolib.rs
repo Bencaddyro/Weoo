@@ -1,9 +1,10 @@
 use chrono::Utc;
 use egui::Color32;
-use egui_plot::MarkerShape;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::ops::{Add, Sub};
+
+use crate::Database;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Deserialize, Serialize)]
 pub struct SpaceTimePosition {
@@ -24,32 +25,11 @@ pub struct ProcessedPosition {
     pub color: Option<Color32>,
 }
 
-#[derive(Debug, Clone)]
-pub struct Path {
-    pub name: String,
-    pub history: Vec<ProcessedPosition>,
-    pub color: Color32,
-    pub shape: MarkerShape,
-    pub radius: f32,
-}
-
 #[derive(Debug, Deserialize, Serialize, Copy, Clone, PartialEq, Default)]
 pub struct Vec3d {
     pub x: f64,
     pub y: f64,
     pub z: f64,
-}
-
-impl Path {
-    pub fn new() -> Path {
-        Path {
-            name: "Self".to_string(),
-            history: Vec::new(),
-            color: Color32::DARK_GRAY,
-            shape: MarkerShape::Circle,
-            radius: 3.0,
-        }
-    }
 }
 
 impl Add for Vec3d {
@@ -89,13 +69,14 @@ impl Vec3d {
             .acos()
             .to_degrees()
     }
+    // angle is radian !
     pub fn rotate(&self, angle: f64) -> Vec3d {
         let angle = if angle.is_nan() { 0.0 } else { angle };
-        Vec3d::new(
-            angle.cos() * self.x - angle.sin() * self.y,
-            angle.sin() * self.x + angle.cos() * self.y,
-            self.z,
-        )
+        Vec3d {
+            x: angle.cos() * self.x - angle.sin() * self.y,
+            y: angle.sin() * self.x + angle.cos() * self.y,
+            z: self.z,
+        }
     }
     pub fn latitude(&self) -> f64 {
         (self.z / self.norm()).asin()
@@ -103,8 +84,8 @@ impl Vec3d {
     pub fn longitude(&self) -> f64 {
         self.x.atan2(self.y) * -1.0
     }
-    pub fn altitude(&self, container: &Container) -> f64 {
-        self.norm() - container.radius_body
+    pub fn altitude(&self, sea_level: f64) -> f64 {
+        self.norm() - sea_level
     }
 
     pub fn transform_to_local(&self, time_elapsed: f64, container: &Container) -> Vec3d {
@@ -172,6 +153,21 @@ pub struct Poi {
     pub latitude: Option<f64>,
     pub longitude: Option<f64>,
     pub altitude: Option<f64>,
+}
+
+pub fn poi_to_processed_point(p: &Poi, database: &Database) -> ProcessedPosition {
+    let sea_level = database.get(&p.container).unwrap().radius_body;
+    ProcessedPosition {
+        space_time_position: SpaceTimePosition::default(),
+        local_coordinates: p.coordinates,
+        time_elapsed: 0.0,
+        container_name: p.container.to_string(),
+        name: p.name.to_string(),
+        latitude: p.coordinates.latitude(),
+        longitude: p.coordinates.longitude(),
+        altitude: p.coordinates.altitude(sea_level),
+        color: None,
+    }
 }
 
 pub fn get_current_container(pos: &Vec3d, database: &BTreeMap<String, Container>) -> Container {

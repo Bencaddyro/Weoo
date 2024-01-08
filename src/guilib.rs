@@ -1,15 +1,16 @@
 use crate::{
-    geolib::{Container, Path},
     iolib::{import_history, save_history, save_to_poi},
-    mainlib::{WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition},
+    mainlib::{Path, Target},
+    MyEguiApp,
 };
 use chrono::Duration;
 use egui::{
     color_picker::color_picker_color32, CollapsingHeader, Color32, ComboBox, Context, Grid, Pos2,
     RichText, TextEdit, TopBottomPanel, Ui,
 };
-use egui_plot::{Line, MarkerShape, Plot, Points};
-use std::collections::{BTreeMap, HashMap};
+use egui_plot::{Line, Plot, Points};
+use rand::Rng;
+use std::f64::NAN;
 
 static mut SMARTY: String = String::new(); // Dirty (but working way) too get snapped point on graph see https://github.com/emilk/egui/discussions/1778
 
@@ -55,505 +56,395 @@ pub fn borked_cig_heading(a: f64) -> String {
 
     format!("{graduation}°{minutes}’")
 }
-use rand::Rng;
-// ui.label("Debug:"); TODO Debug feature
-// ui.add(egui::TextEdit::multiline(&mut format!("Timestamp: {}\nCoordinates: x:{} y:{} z:{}",
-//                                     position.space_time_position.timestamp,
-//                                     position.space_time_position.coordinates.x,
-//                                     position.space_time_position.coordinates.y,
-//                                     position.space_time_position.coordinates.z,
-//                                             )));
-// ui.end_row();
 
-impl WidgetTopPosition {
-    pub fn display(
-        &mut self,
-        ctx: &Context,
-        database: &mut BTreeMap<String, Container>,
-        index: &mut usize,
-        displayed_path: &mut String,
-        targets: &mut WidgetTargets,
-        paths: &mut HashMap<String, Path>,
-    ) {
-        let len = paths.get_mut(displayed_path).unwrap().history.len();
-
-        TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                ui.vertical(|ui| {
-                    // Current position
-                    ui.horizontal(|ui| {
-                        ui.heading("Self Position");
-                        ui.spinner();
-                    });
-
-                    if let Some(position) = paths
-                        .get_mut(displayed_path)
-                        .unwrap()
-                        .history
-                        .get_mut(*index)
-                    {
-                        egui::Grid::new("SelfPosition").show(ui, |ui| {
-                            ui.label("Timestamp:");
-                            ui.label(format!("{}", position.space_time_position.timestamp));
-                            ui.end_row();
-                            ui.label("Coordinates_X:");
-                            ui.label(format!("{}", position.space_time_position.coordinates.x));
-                            ui.end_row();
-                            ui.label("Coordinates_Y:");
-                            ui.label(format!("{}", position.space_time_position.coordinates.y));
-                            ui.end_row();
-                            ui.label("Coordinates_Z:");
-                            ui.label(format!("{}", position.space_time_position.coordinates.z));
-                            ui.end_row();
-                            ui.label("Container:");
-                            ui.label(position.container_name.clone());
-                            ui.end_row();
-                            ui.label("Latitute:");
-                            ui.label(pretty(position.latitude));
-                            ui.end_row();
-                            ui.label("Longitude:");
-                            ui.label(pretty(position.longitude));
-                            ui.end_row();
-                            ui.label("Altitude:");
-                            ui.label(format!("{:.3}km", position.altitude));
-                            ui.end_row();
-                        });
-                    } else {
-                        ui.heading("No Position 😕");
-                    }
-                });
-
-                ui.separator();
-                // History
-
-                ui.vertical(|ui| {
-                    let mut eviction = false;
-
-                    ui.horizontal(|ui| {
-                        ui.heading("Path History");
-                        ComboBox::from_id_source("Path")
-                            .selected_text(displayed_path.to_string())
-                            .show_ui(ui, |ui| {
-                                for e in paths.keys() {
-                                    ui.selectable_value(displayed_path, e.clone(), e);
-                                }
-                            });
-                    });
-
-                    if let Some(position) = paths
-                        .get_mut(displayed_path)
-                        .unwrap()
-                        .history
-                        .get_mut(*index)
-                    {
-                        ui.horizontal(|ui| {
-                            if ui.button("❌").clicked() {
-                                eviction = true;
-                            };
-                            if ui.button("⏴").clicked() & (*index > 0) {
-                                *index -= 1;
-                            };
-                            if ui.button("⏵").clicked() & (*index + 1 < len) {
-                                *index += 1;
-                            };
-
-                            ui.heading(format!("{}/{}:", *index + 1, len,));
-
-                            ui.heading(position.name.to_string());
-                        });
-                        ui.horizontal(|ui| {
-                            ui.add(TextEdit::singleline(&mut position.name).hint_text("No_name"));
-
-                            if ui.button("Save as POI").clicked() {
-                                let new_poi = save_to_poi(position);
-                                // Add to database
-                                database
-                                    .get_mut(&new_poi.container)
-                                    .unwrap()
-                                    .poi
-                                    .insert(new_poi.name.clone(), new_poi);
-                            };
-
-                            ui.end_row();
-                        });
-                    } else {
-                        ui.heading("No Position 😕");
-                    };
-                    if eviction {
-                        paths
-                            .get_mut(displayed_path)
-                            .unwrap()
-                            .history
-                            .remove(*index);
-                    }
-
-                    // ui.separator(); // BUG fill entire right panel
-                    ui.label("---------------------------");
-                    ui.vertical(|ui| {
-                        ui.heading("Path I/O");
-
-                        if ui.button("Export Path").clicked() {
-                            save_history(
-                                &self.history_name,
-                                &paths.get_mut(displayed_path).unwrap().history,
-                            );
-                        };
-                        if ui.button("Import Path").clicked() {
-                            paths.insert(
-                                self.history_name.to_owned(),
-                                Path {
-                                    name: self.history_name.to_owned(),
-                                    color: Color32::from_rgb(
-                                        rand::thread_rng().gen(),
-                                        rand::thread_rng().gen(),
-                                        rand::thread_rng().gen(),
-                                    ),
-                                    history: import_history(&self.history_name),
-                                    shape: MarkerShape::Circle,
-                                    radius: 3.0,
-                                },
-                            );
-                        };
-                        ui.add(TextEdit::singleline(&mut self.history_name).hint_text("Path Name"));
-                    });
-                });
-
-                ui.separator();
-                // Target selection
-
-                ui.vertical(|ui| {
-                    ui.heading("Target Selector");
-                    Grid::new("TargetSelector").show(ui, |ui| {
-                        ui.label("Container");
-                        ComboBox::from_id_source("Container")
-                            .selected_text(self.target_container.name.clone())
-                            .show_ui(ui, |ui| {
-                                for container in database.values() {
-                                    ui.selectable_value(
-                                        &mut self.target_container,
-                                        container.clone(),
-                                        container.name.clone(),
-                                    );
-                                }
-                            });
-                        ui.end_row();
-
-                        ui.label("Poi");
-                        ComboBox::from_id_source("Poi")
-                            .selected_text(self.target_poi.name.clone())
-                            .show_ui(ui, |ui| {
-                                if database.contains_key(&self.target_container.name) {
-                                    for poi in database
-                                        .get(&self.target_container.name)
-                                        .unwrap()
-                                        .poi
-                                        .values()
-                                    {
-                                        ui.selectable_value(
-                                            &mut self.target_poi,
-                                            poi.clone(),
-                                            poi.name.clone(),
-                                        );
-                                    }
-                                }
-                            });
-                        ui.end_row();
-
-                        if ui.button("Add Target").clicked()
-                            & database.contains_key(&self.target_poi.container)
-                        {
-                            targets.targets.push(
-                                // TODO avoid duplicate
-                                WidgetTarget::new(self.target_poi.clone(), database),
-                            );
-                        };
-
-                        ui.end_row();
-                    });
-                });
-            });
-        });
-    }
+pub fn random_color32() -> Color32 {
+    Color32::from_rgb(
+        rand::thread_rng().gen(),
+        rand::thread_rng().gen(),
+        rand::thread_rng().gen(),
+    )
 }
 
-impl WidgetTargets {
-    pub fn display(
-        &mut self,
-        ctx: &egui::Context,
-        index: &mut usize,
-        displayed_path: &mut String,
-        paths: &mut HashMap<String, Path>,
-        targets_path: &mut HashMap<String, WidgetPath>,
-    ) {
+impl MyEguiApp {
+    pub fn display(&mut self, ctx: &Context) {
+        // Display floating widget
+        for (_, path) in self.global_paths.iter_mut() {
+            path.display(ctx)
+        }
+
+        for target in self.global_targets.iter_mut() {
+            target.display(ctx)
+        }
+
+        // Display top row
+        self.display_top(ctx);
+
+        // Display side column
+        self.display_side(ctx);
+
+        // Display main map
+        self.display_map(ctx);
+    }
+
+    fn display_side(&mut self, ctx: &Context) {
         egui::SidePanel::left("my_left_panel").show(ctx, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
+                // Display Targets
                 CollapsingHeader::new(RichText::new("Targets").heading())
                     .default_open(true)
                     .show(ui, |ui| {
-                        let mut eviction = Vec::new();
-                        for (i, e) in self.targets.iter_mut().enumerate() {
+                        let mut eviction = None;
+
+                        for (index, target) in self.global_targets.iter_mut().enumerate() {
                             ui.horizontal(|ui| {
+                                ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
                                 if ui.button("❌").clicked() {
-                                    eviction.push(i);
+                                    eviction = Some(index);
                                 };
                                 if ui.button("👁").clicked() {
-                                    e.open = !e.open;
+                                    target.widget_open = !target.widget_open;
                                 };
-
-                                ui.label(&e.target.name);
+                                ui.label(&target.current_point.name);
                             });
-
-                            e.display(ctx);
                         }
-                        for i in eviction {
-                            self.targets.remove(i);
+                        if let Some(i) = eviction {
+                            self.global_targets.remove(i);
                         }
                     });
 
+                // Display Paths
                 ui.heading("Paths");
+                let mut confirm_eviction = Vec::new();
+                for path in self.global_paths.values_mut() {
+                    let mut eviction = false;
+                    let mut eviction_point = None;
+                    let mut up = None;
+                    let mut down = None;
+                    let len = path.history.len();
+                    let id = ui.make_persistent_id(path.name.to_string());
 
-                let mut eviction_path = None;
-                for (k, path) in paths.iter_mut() {
-                    let possible_eviction = display_path(ui, path, targets_path);
-                    match eviction_path {
-                        None => eviction_path = possible_eviction,
-                        Some(_) => (),
+                    egui::collapsing_header::CollapsingState::load_with_default_open(
+                        ui.ctx(),
+                        id,
+                        false,
+                    )
+                    .show_header(ui, |ui| {
+                        ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+
+                        ui.heading(&path.name);
+
+                        if ui.button("❌").clicked() {
+                            eviction = true;
+                        };
+                        if ui.button("🗺").clicked() {
+                            path.widget_open = true;
+                        };
+
+                        ui.color_edit_button_srgba(&mut path.map_color);
+
+                        ui.add(
+                            egui::DragValue::new(&mut path.map_radius)
+                                .speed(0.1)
+                                .clamp_range(0..=10),
+                        );
+                    })
+                    .body(|ui| {
+                        for (i, p) in path.history.iter_mut().enumerate() {
+                            ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+                            ui.horizontal(|ui| {
+                                ui.menu_button("⚙", |ui| {
+                                    ui.horizontal(|ui| {
+                                        ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+
+                                        if ui.button("⌖").clicked() {
+                                            path.widget_open = true;
+                                            path.current_index = i;
+                                            ui.close_menu();
+                                        };
+                                    });
+                                    let mut color = p.color.unwrap_or(path.map_color);
+
+                                    let color_changed = color_picker_color32(
+                                        ui,
+                                        &mut color,
+                                        egui::color_picker::Alpha::Opaque,
+                                    );
+                                    if color_changed {
+                                        p.color = Some(color);
+                                    }
+                                });
+                                if ui.button("❌").clicked() {
+                                    eviction_point = Some(i);
+                                };
+                                if ui.button("⏶").clicked() & (len > 1) {
+                                    up = Some(i);
+                                };
+                                if ui.button("⏷").clicked() & (len > 1) {
+                                    down = Some(i);
+                                };
+                                if path.current_index == i + 1 {
+                                    ui.label(RichText::new(&p.name).strong());
+                                } else {
+                                    ui.label(&p.name);
+                                }
+                            });
+                        }
+                    });
+                    if let Some(i) = eviction_point {
+                        path.history.remove(i);
+                    } else if let Some(i) = up {
+                        let point = path.history.remove(i);
+                        path.history.insert(i.max(1) - 1, point)
+                    } else if let Some(i) = down {
+                        let point = path.history.remove(i);
+                        path.history.insert(i.min(len - 2) + 1, point)
                     }
 
-                    if path.history.is_empty() & (k != "Self") {
-                        eviction_path = Some(k.to_string());
+                    if eviction {
+                        // Clic on x for path
+                        if path.history.is_empty() & (&path.name != "Self") {
+                            // Is already empty remove path from global_paths
+                            confirm_eviction.push(path.name.to_string());
+                        } else {
+                            // Empty all point
+                            path.history = Vec::new();
+                        }
                     }
                 }
 
-                // clamp index if deletion
-                let len = if paths.get_mut(displayed_path).unwrap().history.is_empty() {
-                    0
-                } else {
-                    paths.get_mut(displayed_path).unwrap().history.len() - 1
-                };
-                *index = (*index).min(len);
-
-                if let Some(k) = eviction_path {
-                    paths.remove(&k);
+                for path_name in confirm_eviction {
+                    self.global_paths.remove(&path_name);
                 }
             });
         });
     }
-}
 
-pub fn display_path(
-    ui: &mut Ui,
-    path: &mut Path,
-    targets_path: &mut HashMap<String, WidgetPath>,
-) -> Option<String> {
-    let mut eviction = None;
-    let mut up = None;
-    let mut down = None;
-    let len = path.history.len();
-    let k = path.name.to_string();
-    let mut eviction_path = None;
+    fn display_top(&mut self, ctx: &Context) {
+        TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                self.display_top_left(ui);
+                ui.separator();
 
-    let id = ui.make_persistent_id(k.to_string());
-    egui::collapsing_header::CollapsingState::load_with_default_open(ui.ctx(), id, false)
-        .show_header(ui, |ui| {
-            ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+                self.display_top_middle(ui);
+                ui.separator();
 
-            ui.heading(k.to_string());
+                self.display_top_right(ui);
+            });
+        });
+    }
 
-            if ui.button("❌").clicked() & (path.name != "Self") {
-                eviction_path = Some(k.to_string());
-            };
-            if ui.button("🗺").clicked() {
-                targets_path.insert(
-                    k.to_string(),
-                    WidgetPath {
-                        open: true,
-                        index: 0,
-                        history: k.to_string(),
-                        latitude: 0.0,
-                        longitude: 0.0,
-                        altitude: 0.0,
-                        distance: 0.0,
-                        heading: 0.0,
-                        duration: Duration::zero(),
-                        length: 0.0,
-                    },
-                );
-            };
+    fn display_top_left(&mut self, ui: &mut Ui) {
+        ui.vertical(|ui| {
+            ui.horizontal(|ui| {
+                ui.heading("Self Position");
+                ui.spinner();
+            });
 
-            ui.color_edit_button_srgba(&mut path.color);
-
-            ui.add(
-                egui::DragValue::new(&mut path.radius)
-                    .speed(0.1)
-                    .clamp_range(0..=10),
-            );
-        })
-        .body(|ui| {
-            for (i, p) in path.history.iter_mut().enumerate() {
-                ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
-                ui.horizontal(|ui| {
-                    ui.menu_button("⚙", |ui| {
-                        ui.horizontal(|ui| {
-                            ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
-
-                            if ui.button("⌖").clicked() {
-                                targets_path.insert(
-                                    k.to_string(),
-                                    WidgetPath {
-                                        open: true,
-                                        index: i,
-                                        history: k.to_string(),
-                                        latitude: 0.0,
-                                        longitude: 0.0,
-                                        altitude: 0.0,
-                                        distance: 0.0,
-                                        heading: 0.0,
-                                        duration: Duration::zero(),
-                                        length: 0.0,
-                                    },
-                                );
-                                ui.close_menu();
-                            };
-                        });
-                        let mut color = p.color.unwrap_or(path.color);
-
-                        let color_changed =
-                            color_picker_color32(ui, &mut color, egui::color_picker::Alpha::Opaque);
-                        if color_changed {
-                            p.color = Some(color);
-                        }
+            if let Some(current_path) = self.global_paths.get(&self.path_selector) {
+                if current_path.current_index == 0 {
+                    ui.heading("No Position highlighted !");
+                } else if let Some(position) =
+                    current_path.history.get(current_path.current_index - 1)
+                {
+                    egui::Grid::new("SelfPosition").show(ui, |ui| {
+                        ui.label("Timestamp:");
+                        ui.label(format!("{}", position.space_time_position.timestamp));
+                        ui.end_row();
+                        ui.label("Coordinates_X:");
+                        ui.label(format!("{}", position.space_time_position.coordinates.x));
+                        ui.end_row();
+                        ui.label("Coordinates_Y:");
+                        ui.label(format!("{}", position.space_time_position.coordinates.y));
+                        ui.end_row();
+                        ui.label("Coordinates_Z:");
+                        ui.label(format!("{}", position.space_time_position.coordinates.z));
+                        ui.end_row();
+                        ui.label("Container:");
+                        ui.label(&position.container_name);
+                        ui.end_row();
+                        ui.label("Latitute:");
+                        ui.label(pretty(position.latitude));
+                        ui.end_row();
+                        ui.label("Longitude:");
+                        ui.label(pretty(position.longitude));
+                        ui.end_row();
+                        ui.label("Altitude:");
+                        ui.label(format!("{:.3}km", position.altitude));
+                        ui.end_row();
                     });
-                    if ui.button("❌").clicked() {
-                        eviction = Some(i);
-                        ui.close_menu();
-                    };
-                    if ui.button("⏶").clicked() & (len > 1) {
-                        up = Some(i);
-                    };
-                    if ui.button("⏷").clicked() & (len > 1) {
-                        down = Some(i);
-                    };
-
-                    if let Some(index) = targets_path.get(&path.name).map(|p| p.index) {
-                        if index == i {
-                            ui.label(RichText::new(&p.name).strong());
-                        } else {
-                            ui.label(&p.name);
-                        }
-                    } else {
-                        ui.label(&p.name);
-                    }
-                });
+                }
+            } else {
+                ui.heading("No Position 😕");
             }
         });
-    if let Some(i) = eviction {
-        path.history.remove(i);
-    } else if let Some(i) = up {
-        let point = path.history.remove(i);
-        path.history.insert(i.max(1) - 1, point)
-    } else if let Some(i) = down {
-        let point = path.history.remove(i);
-        path.history.insert(i.min(len - 2) + 1, point)
     }
 
-    eviction_path
-}
+    fn display_top_middle(&mut self, ui: &mut Ui) {
+        ui.vertical(|ui| {
+            let mut eviction = false;
 
-impl WidgetTarget {
-    pub fn display(&mut self, ctx: &egui::Context) {
-        egui::Window::new(format!("{} - {}", self.target.container, self.target.name))
-            .default_pos(Pos2::new(400.0, 800.0))
-            .open(&mut self.open)
-            .show(ctx, |ui| {
-                egui::Grid::new("MainGrid").show(ui, |ui| {
-                    ui.label("Latitute:");
-                    ui.label(pretty(self.latitude));
-                    ui.end_row();
-                    ui.label("Longitude:");
-                    ui.label(pretty(self.longitude));
-                    ui.end_row();
-                    ui.label("Altitude:");
-                    ui.label(format!("{:.3}km", self.altitude));
-                    ui.end_row();
-                    ui.label("Distance:");
-                    ui.label(format!("{:.3}km", self.distance));
-                    ui.end_row();
-                    ui.label("Heading:");
-                    ui.label(pretty(self.heading));
-                    ui.end_row();
-                    ui.label("CIG Heading:");
-                    ui.label(borked_cig_heading(self.heading));
-                    ui.end_row();
-                });
-            });
-    }
-}
-
-impl WidgetPath {
-    pub fn display(&mut self, ctx: &egui::Context, paths: &HashMap<String, Path>) {
-        let path = paths.get(&self.history).unwrap();
-
-        let current_point = &path.history[self.index];
-        egui::Window::new(format!("Path - {}", self.history))
-            .default_pos(Pos2::new(400.0, 800.0))
-            .open(&mut self.open)
-            .show(ctx, |ui| {
-                egui::Grid::new("MainGrid").show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        if ui.button("⏴").clicked() & (self.index > 0) {
-                            self.index -= 1;
-                        };
-                        if ui.button("⏵").clicked() & (self.index + 1 < path.history.len()) {
-                            self.index += 1;
-                        };
-                        ui.heading(format!("{}/{}", self.index + 1, path.history.len()));
+            ui.horizontal(|ui| {
+                ui.heading("Path History");
+                ComboBox::from_id_source("Path")
+                    .selected_text(&self.path_selector)
+                    .show_ui(ui, |ui| {
+                        for e in self.global_paths.keys() {
+                            ui.selectable_value(&mut self.path_selector, e.clone(), e);
+                        }
                     });
-                    ui.heading(&current_point.name);
-
-                    ui.end_row();
-                    ui.label("Latitute:");
-                    ui.label(pretty(current_point.latitude));
-                    ui.end_row();
-                    ui.label("Longitude:");
-                    ui.label(pretty(current_point.longitude));
-                    ui.end_row();
-                    ui.label("Altitude:");
-                    ui.label(format!("{:.3}km", current_point.altitude));
-                    ui.end_row();
-                    ui.label("Distance:");
-                    ui.label(format!("{:.3}km", self.distance));
-                    ui.end_row();
-                    ui.label("Heading:");
-                    ui.label(pretty(self.heading));
-                    ui.end_row();
-                    ui.label("CIG Heading:");
-                    ui.label(borked_cig_heading(self.heading));
-                    ui.end_row();
-                    ui.label("Duration:");
-                    ui.label(pretty_duration(self.duration));
-                    ui.end_row();
-                    ui.label("Lenght:");
-                    ui.label(format!("{:.3}km", self.length));
-                    ui.end_row();
-                });
             });
-    }
-}
 
-impl WidgetMap {
-    pub fn display(
-        &mut self,
-        ctx: &egui::Context,
-        targets: &WidgetTargets,
-        paths: &HashMap<String, Path>,
-        widget_path: &mut HashMap<String, WidgetPath>,
-    ) -> Option<(f64, f64)> {
-        let mut res = None;
+            if let Some(current_path) = self.global_paths.get_mut(&self.path_selector) {
+                let len = current_path.history.len();
+                if current_path.current_index == 0 {
+                    ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+                        if ui.button("⏴").clicked() & (current_path.current_index > 0) {
+                            current_path.current_index -= 1;
+                        };
+                        if ui.button("⏵").clicked() & (current_path.current_index < len) {
+                            current_path.current_index += 1;
+                        };
+
+                        ui.heading(format!("😕 {}/{}", current_path.current_index, len,));
+                    });
+                } else if let Some(position) =
+                    current_path.history.get_mut(current_path.current_index - 1)
+                {
+                    ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+                        if ui.button("❌").clicked() {
+                            eviction = true;
+                        };
+                        if ui.button("⏴").clicked() & (current_path.current_index > 0) {
+                            current_path.current_index -= 1;
+                        };
+                        if ui.button("⏵").clicked() & (current_path.current_index < len) {
+                            current_path.current_index += 1;
+                        };
+
+                        ui.heading(format!("{}/{}:", current_path.current_index, len,));
+
+                        ui.heading(position.name.to_string());
+                    });
+                    ui.horizontal(|ui| {
+                        ui.add(TextEdit::singleline(&mut position.name).hint_text("No_name"));
+
+                        ui.add_enabled(false, egui::Button::new("Save as POI"));
+
+                        // if ui.button("Save as POI").clicked() { //TODO repair NEW
+                        // let new_poi = save_to_poi(position);
+                        // // Add to database
+                        // database
+                        //     .get_mut(&new_poi.container)
+                        //     .unwrap()
+                        //     .poi
+                        //     .insert(new_poi.name.clone(), new_poi);
+                        // };
+
+                        ui.end_row();
+                    });
+                }
+            } else {
+                ui.heading("No Position 😕");
+            };
+            if eviction {
+                if let Some(current_path) = self.global_paths.get_mut(&self.path_selector) {
+                    current_path.history.remove(current_path.current_index - 1);
+                }
+            }
+
+            // ui.separator(); // BUG fill entire right panel
+            ui.label("---------------------------");
+            ui.vertical(|ui| {
+                ui.heading("Path I/O");
+
+                if let Some(path) = self.global_paths.get(&self.path_selector) {
+                    if ui.button("Export Path").clicked() {
+                        save_history(&self.path_name_io, &path.history);
+                    }
+                } else {
+                    ui.add_enabled(false, egui::Button::new("Export Path"));
+                }
+
+                if ui.button("Import Path").clicked() {
+                    let mut path = Path::new(self.path_name_io.to_string());
+                    path.map_color = random_color32();
+                    path.history = import_history(&self.path_name_io);
+                    self.global_paths
+                        .insert(self.path_name_io.to_string(), path);
+                };
+                ui.add(TextEdit::singleline(&mut self.path_name_io).hint_text("Path Name"));
+            });
+        });
+    }
+
+    fn display_top_right(&mut self, ui: &mut Ui) {
+        ui.vertical(|ui| {
+            ui.heading("Target Selector");
+            Grid::new("TargetSelector").show(ui, |ui| {
+                ui.label("Container");
+                ComboBox::from_id_source("Container")
+                    .selected_text(&self.target_selector_container)
+                    .show_ui(ui, |ui| {
+                        for container in self.database.values() {
+                            ui.selectable_value(
+                                &mut self.target_selector_container,
+                                container.name.clone(),
+                                container.name.clone(),
+                            );
+                        }
+                    });
+                ui.end_row();
+
+                ui.label("Poi");
+                ComboBox::from_id_source("Poi")
+                    .selected_text(&self.target_selector_poi)
+                    .show_ui(ui, |ui| {
+                        if self.database.contains_key(&self.target_selector_container) {
+                            for poi in self
+                                .database
+                                .get(&self.target_selector_container)
+                                .unwrap()
+                                .poi
+                                .values()
+                            {
+                                ui.selectable_value(
+                                    &mut self.target_selector_poi,
+                                    poi.name.clone(),
+                                    poi.name.clone(),
+                                );
+                            }
+                        }
+                    });
+                ui.end_row();
+
+                if ui.button("Add Target").clicked()
+                    & self.database.contains_key(&self.target_selector_container)
+                {
+                    if let Some(poi) = self
+                        .database
+                        .get(&self.target_selector_container)
+                        .unwrap()
+                        .poi
+                        .get(&self.target_selector_poi)
+                    {
+                        self.global_targets.push(Target::new(poi, &self.database));
+                        // TODO check for duplicate !
+                    }
+                };
+
+                ui.end_row();
+            });
+            ui.label("------------------------");
+            ui.checkbox(&mut self.path_add_point, "Auto add point");
+        });
+    }
+
+    fn display_map(&mut self, ctx: &Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Map");
             // TODO get map from scdatatools
-
             let plot_response = Plot::new("my_plot")
                 .data_aspect(1.0)
                 .include_x(-180)
@@ -575,105 +466,82 @@ impl WidgetMap {
                     }
                 })
                 .show(ui, |plot_ui| {
-                    for p in &targets.targets {
-                        let c = [p.longitude.to_degrees(), p.latitude.to_degrees()];
+                    // Draw Targets in map
+                    for target in &self.global_targets {
+                        let c = [
+                            target.current_point.longitude.to_degrees(),
+                            target.current_point.latitude.to_degrees(),
+                        ];
                         plot_ui.points(
                             Points::new(c)
-                                .name(p.target.name.clone())
-                                .radius(3.0)
-                                .shape(egui_plot::MarkerShape::Diamond),
+                                .name(&target.current_point.name)
+                                .radius(target.map_radius)
+                                .shape(target.map_shape)
+                                .color(target.map_color),
                         );
                     }
 
-                    // Construct & display all path !
-                    for (k, path) in paths {
-                        let mut point_path = Vec::new();
-
-                        let index = widget_path.get(k).map(|w| w.index);
-
-                        for (i, p) in path.history.iter().enumerate() {
+                    // Draw Paths in map
+                    for path in self.global_paths.values() {
+                        // Accumulator
+                        let mut path_line = Vec::new();
+                        let mut path_point = Vec::new();
+                        for (index, point) in path.history.iter().enumerate() {
                             let c = [
-                                p.local_coordinates.longitude().to_degrees(),
-                                p.local_coordinates.latitude().to_degrees(),
+                                point.local_coordinates.longitude().to_degrees(),
+                                point.local_coordinates.latitude().to_degrees(),
                             ];
-                            point_path.push(c);
-                            if let Some(real_i) = index {
-                                if real_i == i {
-                                    let highlight_color = Color32::from_rgb(
-                                    255 - path.color.r(),
-255 - path.color.g(),
-                                                                            255 - path.color.b(),
-                                      );
-
-                                    plot_ui.points(
-                                        Points::new(c)
-                                            .name(p.name.clone())
-                                            .radius(path.radius)
-                                            .color(highlight_color)
-                                            // .color(p.color.unwrap_or(path.color))
-                                            .shape(path.shape)
-                                            .highlight(true),
-                                    );
-                                } else {
-                                    plot_ui.points(
-                                        Points::new(c)
-                                            .name(p.name.clone())
-                                            .radius(path.radius)
-                                            .color(p.color.unwrap_or(path.color))
-                                            .shape(path.shape),
-                                    );
-                                }
-                            } else {
-                                plot_ui.points(
-                                    Points::new(c)
-                                        .name(p.name.clone())
-                                        .radius(path.radius)
-                                        .color(p.color.unwrap_or(path.color))
-                                        .shape(path.shape),
+                            path_line.push(c);
+                            path_point.push(if path.current_index == index + 1 {
+                                let highlight_color = Color32::from_rgb(
+                                    255 - path.map_color.r(),
+                                    255 - path.map_color.g(),
+                                    255 - path.map_color.b(),
                                 );
-                            }
+                                Points::new(c)
+                                    .name(&point.name)
+                                    .radius(path.map_radius)
+                                    .color(highlight_color)
+                                    .shape(path.map_shape)
+                                    .highlight(true)
+                            } else {
+                                Points::new(c)
+                                    .name(&point.name)
+                                    .radius(path.map_radius)
+                                    .color(point.color.unwrap_or(path.map_color))
+                                    .shape(path.map_shape)
+                            });
                         }
-                        plot_ui.line(Line::new(point_path).name(k).width(1.5).color(path.color));
+                        for point in path_point {
+                            plot_ui.points(point);
+                        }
+                        plot_ui.line(
+                            Line::new(path_line)
+                                .name(&path.name) //BUG highlight point get pathname on display, side effect frow drawing path...
+                                .width(1.5)
+                                .color(path.map_color),
+                        );
                     }
                 });
 
+            // Handle interaction
             let snapped_point: String;
             unsafe {
                 snapped_point = SMARTY.clone();
                 SMARTY = String::new();
             }
-
             if plot_response
                 .response
                 .clicked_by(egui::PointerButton::Primary)
             {
-                for path in paths {
-                    for (i, point) in path.1.history.iter().enumerate() {
+                for path in self.global_paths.values_mut() {
+                    for (i, point) in path.history.iter().enumerate() {
                         if point.name == snapped_point {
-                            if let Some(w_path) = widget_path.get_mut(path.0) {
-                                w_path.index = i;
-                            } else {
-                                widget_path.insert(
-                                    path.0.to_string(),
-                                    WidgetPath {
-                                        open: true,
-                                        index: i,
-                                        history: path.0.to_string(),
-                                        latitude: 0.0,
-                                        longitude: 0.0,
-                                        altitude: 0.0,
-                                        distance: 0.0,
-                                        heading: 0.0,
-                                        duration: Duration::zero(),
-                                        length: 0.0,
-                                    },
-                                );
-                            }
+                            path.current_index = i + 1;
                         }
                     }
                 }
             }
-
             if plot_response
                 .response
                 .clicked_by(egui::PointerButton::Middle)
@@ -684,10 +552,103 @@ impl WidgetMap {
 
                 let latitude = new_point.y.to_radians();
                 let longitude = new_point.x.to_radians();
-
-                res = Some((latitude, longitude));
+                self.new_coordinates_from_map(latitude, longitude);
             }
         });
-        res
+    }
+}
+
+impl Target {
+    pub fn display(&mut self, ctx: &Context) {
+        egui::Window::new(format!(
+            "{} - {}",
+            self.current_point.container_name, self.current_point.name
+        ))
+        .default_pos(Pos2::new(400.0, 800.0))
+        .open(&mut self.widget_open)
+        .show(ctx, |ui| {
+            egui::Grid::new("MainGrid").show(ui, |ui| {
+                ui.label("Latitute:");
+                ui.label(pretty(self.current_point.latitude));
+                ui.end_row();
+                ui.label("Longitude:");
+                ui.label(pretty(self.current_point.longitude));
+                ui.end_row();
+                ui.label("Altitude:");
+                ui.label(format!("{:.3}km", self.current_point.altitude));
+                ui.end_row();
+                ui.label("Distance:");
+                ui.label(format!("{:.3}km", self.current_distance));
+                ui.end_row();
+                ui.label("Heading:");
+                ui.label(pretty(self.current_heading));
+                ui.end_row();
+                ui.label("CIG Heading:");
+                ui.label(borked_cig_heading(self.current_heading));
+                ui.end_row();
+            });
+        });
+    }
+}
+
+impl Path {
+    pub fn display(&mut self, ctx: &Context) {
+        self.current_index = self.current_index.clamp(0, self.history.len());
+        let current_point = if self.current_index < 1 {
+            None
+        } else {
+            self.history.get(self.current_index - 1)
+        };
+
+        egui::Window::new(format!("Path - {}", self.name))
+            .default_pos(Pos2::new(400.0, 800.0))
+            .open(&mut self.widget_open)
+            .show(ctx, |ui| {
+                egui::Grid::new("MainGrid").show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        if ui.button("⏴").clicked() & (self.current_index > 0) {
+                            self.current_index -= 1;
+                        };
+                        if ui.button("⏵").clicked() & (self.current_index < self.history.len()) {
+                            self.current_index += 1;
+                        };
+
+                        ui.heading(format!("{}/{}", self.current_index, self.history.len()));
+                    });
+                    ui.heading(
+                        current_point
+                            .map(|p| p.name.to_string())
+                            .unwrap_or_default(),
+                    );
+                    ui.end_row();
+                    ui.label("Latitute:");
+                    ui.label(pretty(current_point.map(|p| p.latitude).unwrap_or(NAN)));
+                    ui.end_row();
+                    ui.label("Longitude:");
+                    ui.label(pretty(current_point.map(|p| p.longitude).unwrap_or(NAN)));
+                    ui.end_row();
+                    ui.label("Altitude:");
+                    ui.label(format!(
+                        "{:.3}km",
+                        current_point.map(|p| p.altitude).unwrap_or(NAN)
+                    ));
+                    ui.end_row();
+                    ui.label("Distance:");
+                    ui.label(format!("{:.3}km", self.current_distance));
+                    ui.end_row();
+                    ui.label("Heading:");
+                    ui.label(pretty(self.current_heading));
+                    ui.end_row();
+                    ui.label("CIG Heading:");
+                    ui.label(borked_cig_heading(self.current_heading));
+                    ui.end_row();
+                    ui.label("Duration:");
+                    ui.label(pretty_duration(self.duration));
+                    ui.end_row();
+                    ui.label("Lenght:");
+                    ui.label(format!("{:.3}km", self.length));
+                    ui.end_row();
+                });
+            });
     }
 }
