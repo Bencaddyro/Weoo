@@ -5,8 +5,10 @@ use arboard::Clipboard;
 use chrono::prelude::*;
 use eframe::egui;
 
-use geolib::{get_current_container, Path, ProcessedPosition, SpaceTimePosition, Vec3d};
-use mainlib::{WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition, Target};
+use geolib::{get_current_container, ProcessedPosition, SpaceTimePosition, Vec3d};
+use mainlib::{
+    Path, Target, WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition,
+};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
@@ -66,14 +68,14 @@ struct MyEguiApp {
     target_selector_container: String,
 
     // ---------------------- OLD
-    index: usize, // TODO impl index on Path
+    index: usize,                 // TODO impl index on Path
     paths: HashMap<String, Path>, //check
-    displayed_path: String, //check
+    displayed_path: String,       //check
 
     // Gui component
-    position: WidgetTopPosition, //check
-    targets: WidgetTargets, //check
-    map: WidgetMap, //nothing here //TODO still need to be draw !
+    position: WidgetTopPosition,               //check
+    targets: WidgetTargets,                    //check
+    map: WidgetMap,                            //nothing here //TODO still need to be draw !
     targets_path: HashMap<String, WidgetPath>, //TODO widgetpath  need to be draw from Path
 }
 
@@ -129,7 +131,7 @@ impl MyEguiApp {
         MyEguiApp {
             database,
             targets: WidgetTargets::new(targets),
-            paths: HashMap::from([("Self".to_string(), Path::new())]),
+            paths: HashMap::from([("Self".to_string(), Path::new("Self".to_string()))]),
             displayed_path: "Self".to_owned(),
             clipboard,
             position: WidgetTopPosition::default(),
@@ -141,16 +143,11 @@ impl MyEguiApp {
             path_name_io: String::new(),
             global_history_index: 0,
             global_history: Vec::new(),
-            global_paths: HashMap::new(),
+            global_paths: HashMap::from([("Self".to_string(), Path::new("Self".to_string()))]),
             global_targets: Vec::new(),
             path_selector: String::new(),
             target_selector_poi: String::new(),
             target_selector_container: String::new(),
-
-
-
-
-
         }
     }
 
@@ -282,6 +279,14 @@ impl eframe::App for MyEguiApp {
             }
         }
 
+        // Update all NEW path
+        for (_, path) in self.global_paths.iter_mut() {
+            path.update(
+                &self.database,
+                self.paths.get("Self").unwrap().history.get(self.index),
+            );
+        }
+
         // Update all targets with current position !
         for i in self.targets.targets.iter_mut() {
             i.update(
@@ -328,6 +333,9 @@ impl eframe::App for MyEguiApp {
             .display(ctx, &self.targets, &self.paths, &mut self.targets_path);
 
         // Add new point from I/O on map
-        self.new_coordinates_from_map(point)
+        self.new_coordinates_from_map(point);
+
+        // Display NEW everything
+        self.display(ctx);
     }
 }

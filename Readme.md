@@ -7,8 +7,3 @@ Heavily inspired by:
 
 This tool aim to provide a reliable navigation tool to find, save, import, export various Point of Interest in the Stanton system.
 Right now the focus is primarly on planetary navigation fo the upcoming 2024 Daymar Rally
-
-TODO:
-- calculate current heading based on last 2 points
-- get path correction based on current heading & target heading
-- manage history

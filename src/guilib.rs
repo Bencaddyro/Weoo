@@ -1,15 +1,20 @@
 use crate::{
-    geolib::{Container, Path},
+    geolib::Container,
     iolib::{import_history, save_history, save_to_poi},
-    mainlib::{WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition},
+    mainlib::{Path, WidgetMap, WidgetPath, WidgetTarget, WidgetTargets, WidgetTopPosition},
+    MyEguiApp,
 };
 use chrono::Duration;
 use egui::{
     color_picker::color_picker_color32, CollapsingHeader, Color32, ComboBox, Context, Grid, Pos2,
     RichText, TextEdit, TopBottomPanel, Ui,
 };
-use egui_plot::{Line, MarkerShape, Plot, Points};
-use std::collections::{BTreeMap, HashMap};
+use egui_plot::{Line, Plot, Points};
+use rand::Rng;
+use std::{
+    collections::{BTreeMap, HashMap},
+    f64::NAN,
+};
 
 static mut SMARTY: String = String::new(); // Dirty (but working way) too get snapped point on graph see https://github.com/emilk/egui/discussions/1778
 
@@ -55,15 +60,76 @@ pub fn borked_cig_heading(a: f64) -> String {
 
     format!("{graduation}°{minutes}’")
 }
-use rand::Rng;
-// ui.label("Debug:"); TODO Debug feature
-// ui.add(egui::TextEdit::multiline(&mut format!("Timestamp: {}\nCoordinates: x:{} y:{} z:{}",
-//                                     position.space_time_position.timestamp,
-//                                     position.space_time_position.coordinates.x,
-//                                     position.space_time_position.coordinates.y,
-//                                     position.space_time_position.coordinates.z,
-//                                             )));
-// ui.end_row();
+
+impl MyEguiApp {
+    pub fn display(&mut self, ctx: &Context) {
+        for (_, path) in self.global_paths.iter_mut() {
+            path.display(ctx)
+        }
+    }
+}
+
+impl Path {
+    pub fn display(&mut self, ctx: &Context) {
+        self.current_index = self.current_index.clamp(0, self.history.len());
+        let current_point = if self.current_index < 1 {
+            None
+        } else {
+            self.history.get(self.current_index - 1)
+        };
+
+        egui::Window::new(format!("Path New - {}", self.name))
+            .default_pos(Pos2::new(400.0, 800.0))
+            .open(&mut self.widget_open)
+            .show(ctx, |ui| {
+                egui::Grid::new("MainGrid").show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        if ui.button("⏴").clicked() & (self.current_index > 0) {
+                            self.current_index -= 1;
+                        };
+                        if ui.button("⏵").clicked() & (self.current_index < self.history.len()) {
+                            self.current_index += 1;
+                        };
+
+                        ui.heading(format!("{}/{}", self.current_index, self.history.len()));
+                    });
+                    ui.heading(
+                        current_point
+                            .map(|p| p.name.to_string())
+                            .unwrap_or_default(),
+                    );
+                    ui.end_row();
+                    ui.label("Latitute:");
+                    ui.label(pretty(current_point.map(|p| p.latitude).unwrap_or(NAN)));
+                    ui.end_row();
+                    ui.label("Longitude:");
+                    ui.label(pretty(current_point.map(|p| p.longitude).unwrap_or(NAN)));
+                    ui.end_row();
+                    ui.label("Altitude:");
+                    ui.label(format!(
+                        "{:.3}km",
+                        current_point.map(|p| p.altitude).unwrap_or(NAN)
+                    ));
+                    ui.end_row();
+                    ui.label("Distance:");
+                    ui.label(format!("{:.3}km", self.current_distance));
+                    ui.end_row();
+                    ui.label("Heading:");
+                    ui.label(pretty(self.current_heading));
+                    ui.end_row();
+                    ui.label("CIG Heading:");
+                    ui.label(borked_cig_heading(self.current_heading));
+                    ui.end_row();
+                    ui.label("Duration:");
+                    ui.label(pretty_duration(self.duration));
+                    ui.end_row();
+                    ui.label("Lenght:");
+                    ui.label(format!("{:.3}km", self.length));
+                    ui.end_row();
+                });
+            });
+    }
+}
 
 impl WidgetTopPosition {
     pub fn display(
@@ -199,20 +265,15 @@ impl WidgetTopPosition {
                             );
                         };
                         if ui.button("Import Path").clicked() {
-                            paths.insert(
-                                self.history_name.to_owned(),
-                                Path {
-                                    name: self.history_name.to_owned(),
-                                    color: Color32::from_rgb(
-                                        rand::thread_rng().gen(),
-                                        rand::thread_rng().gen(),
-                                        rand::thread_rng().gen(),
-                                    ),
-                                    history: import_history(&self.history_name),
-                                    shape: MarkerShape::Circle,
-                                    radius: 3.0,
-                                },
+                            let mut path = Path::new(self.history_name.to_owned());
+                            path.map_color = Color32::from_rgb(
+                                rand::thread_rng().gen(),
+                                rand::thread_rng().gen(),
+                                rand::thread_rng().gen(),
                             );
+                            path.history = import_history(&self.history_name);
+
+                            paths.insert(self.history_name.to_owned(), path);
                         };
                         ui.add(TextEdit::singleline(&mut self.history_name).hint_text("Path Name"));
                     });
@@ -381,10 +442,10 @@ pub fn display_path(
                 );
             };
 
-            ui.color_edit_button_srgba(&mut path.color);
+            ui.color_edit_button_srgba(&mut path.map_color);
 
             ui.add(
-                egui::DragValue::new(&mut path.radius)
+                egui::DragValue::new(&mut path.map_radius)
                     .speed(0.1)
                     .clamp_range(0..=10),
             );
@@ -416,7 +477,7 @@ pub fn display_path(
                                 ui.close_menu();
                             };
                         });
-                        let mut color = p.color.unwrap_or(path.color);
+                        let mut color = p.color.unwrap_or(path.map_color);
 
                         let color_changed =
                             color_picker_color32(ui, &mut color, egui::color_picker::Alpha::Opaque);
@@ -602,40 +663,45 @@ impl WidgetMap {
                             if let Some(real_i) = index {
                                 if real_i == i {
                                     let highlight_color = Color32::from_rgb(
-                                        255 - path.color.r(),
-                                        255 - path.color.g(),
-                                        255 - path.color.b(),
+                                        255 - path.map_color.r(),
+                                        255 - path.map_color.g(),
+                                        255 - path.map_color.b(),
                                     );
 
                                     plot_ui.points(
                                         Points::new(c)
                                             .name(p.name.clone())
-                                            .radius(path.radius)
+                                            .radius(path.map_radius)
                                             .color(highlight_color)
                                             // .color(p.color.unwrap_or(path.color))
-                                            .shape(path.shape)
+                                            .shape(path.map_shape)
                                             .highlight(true),
                                     );
                                 } else {
                                     plot_ui.points(
                                         Points::new(c)
                                             .name(p.name.clone())
-                                            .radius(path.radius)
-                                            .color(p.color.unwrap_or(path.color))
-                                            .shape(path.shape),
+                                            .radius(path.map_radius)
+                                            .color(p.color.unwrap_or(path.map_color))
+                                            .shape(path.map_shape),
                                     );
                                 }
                             } else {
                                 plot_ui.points(
                                     Points::new(c)
                                         .name(p.name.clone())
-                                        .radius(path.radius)
-                                        .color(p.color.unwrap_or(path.color))
-                                        .shape(path.shape),
+                                        .radius(path.map_radius)
+                                        .color(p.color.unwrap_or(path.map_color))
+                                        .shape(path.map_shape),
                                 );
                             }
                         }
-                        plot_ui.line(Line::new(point_path).name(k).width(1.5).color(path.color));
+                        plot_ui.line(
+                            Line::new(point_path)
+                                .name(k)
+                                .width(1.5)
+                                .color(path.map_color),
+                        );
                     }
                 });
 
