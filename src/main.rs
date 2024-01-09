@@ -54,6 +54,7 @@ struct MyEguiApp {
     database: Database,
 
     // App State
+    current_heading: f64,
 
     // Point history, Store all IO point from clipboard of map Input
     global_history_index: usize,
@@ -132,6 +133,7 @@ impl MyEguiApp {
             path_add_point: true,
             target_selector_poi: String::new(),
             target_selector_container: String::new(),
+            current_heading: NAN,
         }
     }
 
@@ -187,7 +189,6 @@ impl MyEguiApp {
                 }
                 path.current_index += 1;
             }
-
         }
     }
 
@@ -283,6 +284,15 @@ impl eframe::App for MyEguiApp {
         } else {
             None
         };
+
+        // Update current heading based on last 2 point from global history
+        if self.global_history.len() > 1 {
+            if let [a, b] =
+                &self.global_history[self.global_history.len() - 2..self.global_history.len()]
+            {
+                self.current_heading = a.local_coordinates.loxodromie_to(b.local_coordinates);
+            };
+        }
 
         // Update all NEW path
         for (_, path) in self.global_paths.iter_mut() {

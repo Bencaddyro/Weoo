@@ -10,7 +10,7 @@ use egui::{
 };
 use egui_plot::{Line, Plot, Points};
 use rand::Rng;
-use std::f64::NAN;
+use std::f64::{NAN, consts::PI};
 
 static mut SMARTY: String = String::new(); // Dirty (but working way) too get snapped point on graph see https://github.com/emilk/egui/discussions/1778
 
@@ -50,6 +50,7 @@ pub fn pretty_duration(a: Duration) -> String {
 // }
 
 pub fn borked_cig_heading(a: f64) -> String {
+    let a = (a + PI + PI) % (PI + PI);
     let degrees = a.to_degrees();
     let graduation = (degrees / 5.0) as i64 * 5;
     let minutes = (degrees % 5.0 * 60.0).trunc();
@@ -84,7 +85,6 @@ impl MyEguiApp {
 
         // Display main map
         self.display_map(ctx);
-
     }
 
     fn display_side(&mut self, ctx: &Context) {
@@ -277,6 +277,11 @@ impl MyEguiApp {
             } else {
                 ui.heading("No Position 😕");
             }
+            egui::Grid::new("InfferedHeading").show(ui, |ui| {
+                ui.label("Current_heading:");
+                ui.label(borked_cig_heading(self.current_heading));
+                ui.end_row();
+            });
         });
     }
 

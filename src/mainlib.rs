@@ -21,7 +21,6 @@ pub struct Target {
     pub current_point: ProcessedPosition,
     pub current_distance: f64,
     pub current_heading: f64,
-
 }
 
 #[derive(Debug, Clone)]
