@@ -84,6 +84,7 @@ impl MyEguiApp {
 
         // Display main map
         self.display_map(ctx);
+
     }
 
     fn display_side(&mut self, ctx: &Context) {

@@ -187,6 +187,7 @@ impl MyEguiApp {
                 }
                 path.current_index += 1;
             }
+
         }
     }
 

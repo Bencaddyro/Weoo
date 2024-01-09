@@ -21,6 +21,7 @@ pub struct Target {
     pub current_point: ProcessedPosition,
     pub current_distance: f64,
     pub current_heading: f64,
+
 }
 
 #[derive(Debug, Clone)]
@@ -81,7 +82,6 @@ impl Target {
             let delta_distance =
                 if complete_position.container_name == self.current_point.container_name {
                     // println!("{:?}\n{:?}\n{:?}\n\n ",self.current_point.local_coordinates - complete_position.local_coordinates, self.current_point.local_coordinates, complete_position.local_coordinates );
-
                     self.current_point.local_coordinates - complete_position.local_coordinates
                 } else {
                     // println!("not same container ! houlala");
