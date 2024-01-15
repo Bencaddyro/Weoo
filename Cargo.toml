@@ -1,6 +1,6 @@
 [package]
 name = "weoo_nav_tool"
-version = "0.1.9-alpha"
+version = "0.2.0"
 authors = ["BenCaddyro"]
 edition = "2021"
 
