@@ -387,18 +387,15 @@ impl MyEguiApp {
                     ui.horizontal(|ui| {
                         ui.add(TextEdit::singleline(&mut position.name).hint_text("No_name"));
 
-                        ui.add_enabled(false, egui::Button::new("Save as POI"));
-
-                        // if ui.button("Save as POI").clicked() { //TODO repair NEW
-                        // let new_poi = save_to_poi(position);
-                        // // Add to database
-                        // database
-                        //     .get_mut(&new_poi.container)
-                        //     .unwrap()
-                        //     .poi
-                        //     .insert(new_poi.name.clone(), new_poi);
-                        // };
-
+                        if ui.button("Save as POI").clicked() {
+                            let new_poi = save_to_poi(position);
+                            // Add to database
+                            self.database
+                                .get_mut(&new_poi.container)
+                                .unwrap()
+                                .poi
+                                .insert(new_poi.name.clone(), new_poi);
+                        };
                         ui.end_row();
                     });
                 }
