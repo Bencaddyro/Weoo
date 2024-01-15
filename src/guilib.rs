@@ -10,7 +10,7 @@ use egui::{
 };
 use egui_plot::{Line, Plot, Points};
 use rand::Rng;
-use std::f64::{NAN, consts::PI};
+use std::f64::{consts::PI, NAN};
 
 static mut SMARTY: String = String::new(); // Dirty (but working way) too get snapped point on graph see https://github.com/emilk/egui/discussions/1778
 
@@ -77,6 +77,8 @@ impl MyEguiApp {
             target.display(ctx)
         }
 
+        self.display_global_store(ctx);
+
         // Display top row
         self.display_top(ctx);
 
@@ -87,6 +89,42 @@ impl MyEguiApp {
         self.display_map(ctx);
     }
 
+    fn display_global_store(&mut self, ctx: &Context) {
+        egui::Window::new("Last Points")
+            .open(&mut self.global_history_widget)
+            .show(ctx, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    // ui.heading("lolu");
+                    let mut eviction = None;
+                    for (index, point) in self.global_history.iter().enumerate().rev() {
+                        ui.horizontal(|ui| {
+                            ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
+                            if ui.button("❌").clicked() {
+                                eviction = Some(index);
+                            };
+                            if ui.button("⌖").clicked() {
+                                self.global_history_index = index;
+                            };
+                            if ui.button("Add").clicked() {
+                                if let Some(path) = self.global_paths.get_mut(&self.path_selector) {
+                                    if path.history.is_empty() {
+                                        path.history.push(point.clone());
+                                    } else {
+                                        path.history.insert(path.current_index, point.clone());
+                                    }
+                                    path.current_index += 1;
+                                }
+                            };
+                            ui.label(&point.name);
+                        });
+                    }
+                    if let Some(i) = eviction {
+                        self.global_history.remove(i);
+                    }
+                });
+            });
+    }
+
     fn display_side(&mut self, ctx: &Context) {
         egui::SidePanel::left("my_left_panel").show(ctx, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
@@ -95,7 +133,7 @@ impl MyEguiApp {
                     .default_open(true)
                     .show(ui, |ui| {
                         let mut eviction = None;
-
+                        let mut focused = None;
                         for (index, target) in self.global_targets.iter_mut().enumerate() {
                             ui.horizontal(|ui| {
                                 ui.spacing_mut().item_spacing = egui::vec2(1.0, 1.0);
@@ -105,17 +143,25 @@ impl MyEguiApp {
                                 if ui.button("👁").clicked() {
                                     target.widget_open = !target.widget_open;
                                 };
+                                if ui.button("⌖").clicked() {
+                                    focused = Some(target.current_point.clone());
+                                };
                                 ui.label(&target.current_point.name);
                             });
                         }
                         if let Some(i) = eviction {
                             self.global_targets.remove(i);
                         }
+                        if let Some(point) = focused {
+                            self.add_to_global(&point);
+                        }
                     });
 
                 // Display Paths
                 ui.heading("Paths");
                 let mut confirm_eviction = Vec::new();
+                let mut focused = None;
+
                 for path in self.global_paths.values_mut() {
                     let mut eviction = false;
                     let mut eviction_point = None;
@@ -159,7 +205,8 @@ impl MyEguiApp {
 
                                         if ui.button("⌖").clicked() {
                                             path.widget_open = true;
-                                            path.current_index = i;
+                                            path.current_index = i + 1;
+                                            focused = Some(p.clone());
                                             ui.close_menu();
                                         };
                                     });
@@ -191,6 +238,7 @@ impl MyEguiApp {
                             });
                         }
                     });
+
                     if let Some(i) = eviction_point {
                         path.history.remove(i);
                     } else if let Some(i) = up {
@@ -215,6 +263,9 @@ impl MyEguiApp {
 
                 for path_name in confirm_eviction {
                     self.global_paths.remove(&path_name);
+                }
+                if let Some(point) = focused {
+                    self.add_to_global(&point);
                 }
             });
         });
@@ -444,6 +495,10 @@ impl MyEguiApp {
             });
             ui.label("------------------------");
             ui.checkbox(&mut self.path_add_point, "Auto add point");
+
+            if ui.button("GlobalStore").clicked() {
+                self.global_history_widget = !self.global_history_widget;
+            }
         });
     }
 
@@ -540,12 +595,17 @@ impl MyEguiApp {
                 .response
                 .clicked_by(egui::PointerButton::Primary)
             {
+                let mut focused = None;
                 for path in self.global_paths.values_mut() {
                     for (i, point) in path.history.iter().enumerate() {
                         if point.name == snapped_point {
                             path.current_index = i + 1;
+                            focused = Some(point.clone());
                         }
                     }
+                }
+                if let Some(point) = focused {
+                    self.add_to_global(&point);
                 }
             }
             if plot_response

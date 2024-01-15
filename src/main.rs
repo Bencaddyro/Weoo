@@ -59,6 +59,7 @@ struct MyEguiApp {
     // Point history, Store all IO point from clipboard of map Input
     global_history_index: usize,
     global_history: Vec<ProcessedPosition>,
+    global_history_widget: bool,
 
     // Paths
     global_paths: Paths,
@@ -127,6 +128,7 @@ impl MyEguiApp {
             path_name_io: String::new(),
             global_history_index: 0,
             global_history: Vec::new(),
+            global_history_widget: false,
             global_paths: HashMap::from([("Self".to_string(), Path::new("Self".to_string()))]),
             global_targets: targets,
             path_selector: "Self".to_string(),
@@ -135,6 +137,11 @@ impl MyEguiApp {
             target_selector_container: String::new(),
             current_heading: NAN,
         }
+    }
+
+    pub fn add_to_global(&mut self, position: &ProcessedPosition) {
+        self.global_history.push(position.clone());
+        self.global_history_index = self.global_history.len() - 1;
     }
 
     pub fn new_coordinates_input(&mut self) {
@@ -176,8 +183,7 @@ impl MyEguiApp {
         };
 
         // Add it to history
-        self.global_history.push(new_position.clone());
-        self.global_history_index += 1;
+        self.add_to_global(&new_position);
 
         if self.path_add_point {
             if let Some(path) = self.global_paths.get_mut(&self.path_selector) {
@@ -226,8 +232,7 @@ impl MyEguiApp {
         };
 
         // Add it to history
-        self.global_history.push(new_position.clone());
-        self.global_history_index += 1;
+        self.add_to_global(&new_position);
 
         if self.path_add_point {
             if let Some(path) = self.global_paths.get_mut(&self.path_selector) {
