@@ -34,6 +34,7 @@ pub struct Path {
     pub map_color: Color32,
     pub map_shape: MarkerShape,
     pub map_radius: f32,
+    pub map_displayed: bool,
 
     // Display on widget info
     pub widget_open: bool,
@@ -116,6 +117,7 @@ impl Path {
             map_color: Color32::DARK_GRAY,
             map_shape: MarkerShape::Circle,
             map_radius: 3.0,
+            map_displayed: true,
 
             widget_open: false,
             current_index: 0,

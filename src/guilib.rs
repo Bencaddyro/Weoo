@@ -186,6 +186,9 @@ impl MyEguiApp {
                         if ui.button("🗺").clicked() {
                             path.widget_open = true;
                         };
+                        if ui.button("👁").clicked() {
+                            path.map_displayed = !path.map_displayed;
+                        };
 
                         ui.color_edit_button_srgba(&mut path.map_color);
 
@@ -541,44 +544,46 @@ impl MyEguiApp {
 
                     // Draw Paths in map
                     for path in self.global_paths.values() {
-                        // Accumulator
-                        let mut path_line = Vec::new();
-                        let mut path_point = Vec::new();
-                        for (index, point) in path.history.iter().enumerate() {
-                            let c = [
-                                point.local_coordinates.longitude().to_degrees(),
-                                point.local_coordinates.latitude().to_degrees(),
-                            ];
-                            path_line.push(c);
-                            path_point.push(if path.current_index == index + 1 {
-                                let highlight_color = Color32::from_rgb(
-                                    255 - path.map_color.r(),
-                                    255 - path.map_color.g(),
-                                    255 - path.map_color.b(),
-                                );
-                                Points::new(c)
-                                    .name(&point.name)
-                                    .radius(path.map_radius)
-                                    .color(highlight_color)
-                                    .shape(path.map_shape)
-                                    .highlight(true)
-                            } else {
-                                Points::new(c)
-                                    .name(&point.name)
-                                    .radius(path.map_radius)
-                                    .color(point.color.unwrap_or(path.map_color))
-                                    .shape(path.map_shape)
-                            });
+                        if path.map_displayed {
+                            // Accumulator
+                            let mut path_line = Vec::new();
+                            let mut path_point = Vec::new();
+                            for (index, point) in path.history.iter().enumerate() {
+                                let c = [
+                                    point.local_coordinates.longitude().to_degrees(),
+                                    point.local_coordinates.latitude().to_degrees(),
+                                ];
+                                path_line.push(c);
+                                path_point.push(if path.current_index == index + 1 {
+                                    let highlight_color = Color32::from_rgb(
+                                        255 - path.map_color.r(),
+                                        255 - path.map_color.g(),
+                                        255 - path.map_color.b(),
+                                    );
+                                    Points::new(c)
+                                        .name(&point.name)
+                                        .radius(path.map_radius)
+                                        .color(highlight_color)
+                                        .shape(path.map_shape)
+                                        .highlight(true)
+                                } else {
+                                    Points::new(c)
+                                        .name(&point.name)
+                                        .radius(path.map_radius)
+                                        .color(point.color.unwrap_or(path.map_color))
+                                        .shape(path.map_shape)
+                                });
+                            }
+                            for point in path_point {
+                                plot_ui.points(point);
+                            }
+                            plot_ui.line(
+                                Line::new(path_line)
+                                    .name(&path.name) //BUG highlight point get pathname on display, side effect frow drawing path...
+                                    .width(1.5)
+                                    .color(path.map_color),
+                            );
                         }
-                        for point in path_point {
-                            plot_ui.points(point);
-                        }
-                        plot_ui.line(
-                            Line::new(path_line)
-                                .name(&path.name) //BUG highlight point get pathname on display, side effect frow drawing path...
-                                .width(1.5)
-                                .color(path.map_color),
-                        );
                     }
                 });
 
