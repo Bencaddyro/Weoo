@@ -249,9 +249,9 @@ impl MyEguiApp {
                 .unwrap();
         let caps = re.captures(&content)?;
         let coordinates = Vec3d::new(
-            caps["x"].parse::<f64>().unwrap() / 1000.0,
-            caps["y"].parse::<f64>().unwrap() / 1000.0,
-            caps["z"].parse::<f64>().unwrap() / 1000.0,
+            caps["x"].parse::<f64>().unwrap(),
+            caps["y"].parse::<f64>().unwrap(),
+            caps["z"].parse::<f64>().unwrap(),
         );
         Some(SpaceTimePosition {
             coordinates,

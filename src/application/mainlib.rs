@@ -27,7 +27,7 @@ use std::{
 
 pub type Paths = HashMap<String, Path>;
 pub type Targets = Vec<Target>;
-pub type Database = BTreeMap<String, Container>;
+pub type Database = BTreeMap<String, OldContainer>;
 
 #[derive(Debug)]
 pub struct Target {
@@ -66,7 +66,7 @@ pub struct Path {
 }
 
 impl Target {
-    pub fn new(target: &Poi, database: &Database) -> Self {
+    pub fn new(target: &OldPoi, database: &Database) -> Self {
         Self {
             widget_open: true,
             current_point: poi_to_processed_point(target, database),

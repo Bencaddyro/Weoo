@@ -15,18 +15,21 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 
-use chrono::Utc;
+/// Boring traits implementation
+mod traits;
+pub use traits::*;
+
+use crate::prelude::*;
+
+use chrono::{DateTime, Utc};
 use egui::Color32;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::ops::{Add, Sub};
-
-use crate::Database;
 
 #[derive(Debug, Default, Copy, Clone, PartialEq, Deserialize, Serialize)]
 pub struct SpaceTimePosition {
     pub coordinates: Vec3d,
-    pub timestamp: chrono::DateTime<Utc>,
+    pub timestamp: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -49,25 +52,17 @@ pub struct Vec3d {
     pub z: f64,
 }
 
-impl Add for Vec3d {
-    type Output = Self;
-    fn add(self, other: Self) -> Self {
-        Self {
-            x: self.x + other.x,
-            y: self.y + other.y,
-            z: self.z + other.z,
-        }
-    }
+#[derive(Debug, Deserialize, Serialize, Copy, Clone, PartialEq, Default)]
+pub struct Vec4d {
+    pub w: f64,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
 }
 
-impl Sub for Vec3d {
-    type Output = Self;
-    fn sub(self, other: Self) -> Self {
-        Self {
-            x: self.x - other.x,
-            y: self.y - other.y,
-            z: self.z - other.z,
-        }
+impl Vec4d {
+    pub fn new(w: f64, x: f64, y: f64, z: f64) -> Vec4d {
+        Vec4d { w, x, y, z }
     }
 }
 
@@ -105,7 +100,7 @@ impl Vec3d {
         self.norm() - sea_level
     }
 
-    pub fn transform_to_local(&self, time_elapsed: f64, container: &Container) -> Vec3d {
+    pub fn transform_to_local(&self, time_elapsed: f64, container: &OldContainer) -> Vec3d {
         let rotation_speed_in_degrees_per_second = 0.1 * (1.0 / container.rotation_speed);
         let rotation_state_in_degrees = (rotation_speed_in_degrees_per_second * time_elapsed
             + container.rotation_adjust)
@@ -123,27 +118,70 @@ impl Vec3d {
             - self.latitude().sin()
                 * target.latitude().cos()
                 * (target.longitude() - self.longitude()).cos();
+
         x.atan2(y)
         // let c = y.atan2(x);
         // println!("{a} {b} {c}");
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Copy, Clone, PartialEq, Default)]
-pub struct Vec4d {
-    pub qw: f64,
-    pub qx: f64,
-    pub qy: f64,
-    pub qz: f64,
+#[derive(Debug, Deserialize, Serialize, Default)]
+pub struct NewDatabase {
+    pub containers: BTreeMap<String, Container>,
 }
 
-impl Vec4d {
-    pub fn new(qw: f64, qx: f64, qy: f64, qz: f64) -> Vec4d {
-        Vec4d { qw, qx, qy, qz }
-    }
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum Container {
+    Node(Node),
+    System(System),
 }
+
+#[derive(Debug, Deserialize, Serialize, Default)]
+pub struct System {
+    /// System name
+    pub name: String,
+    /// List of all POIs inside this container
+    pub pois: Vec<PointOfInterest>,
+    /// List of all containers inside this container
+    pub containers: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Default)]
+pub struct Node {
+    /// Container name
+    pub name: String,
+    /// Container's parent name
+    pub parent: String,
+    /// Vector to describe translation from parent container
+    pub from_parent_coordinates: Vec3d,
+    /// Quaternion to describe rotation from parent container (rad/sec)
+    pub from_parent_rotation: Vec4d,
+    /// Quaternion to define self rotation (rad/sec)
+    pub self_rotation: Vec4d,
+    /// Rotation offset in radians
+    pub rotation_offset: f64,
+    /// List of all POIs inside this container
+    pub pois: BTreeMap<String, PointOfInterest>,
+    /// List of all containers inside this container
+    pub containers: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Default)]
+pub struct PointOfInterest {
+    /// Point of Interest name
+    pub name: String,
+    /// Container name
+    pub parent: String,
+    /// Vector to describe translation from parent container
+    pub coordinates: Vec3d,
+    /// Is there a quantum marker for this point
+    #[serde(default)]
+    pub marker: bool,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
-pub struct Container {
+pub struct OldContainer {
     pub name: String,
     pub coordinates: Vec3d,
     pub quaternions: Vec4d,
@@ -158,10 +196,10 @@ pub struct Container {
     pub orbital_speed: f64,
     pub orbital_angle: f64,
     pub grid_radius: f64,
-    pub poi: BTreeMap<String, Poi>,
+    pub poi: BTreeMap<String, OldPoi>,
 }
 #[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
-pub struct Poi {
+pub struct OldPoi {
     pub name: String,
     pub container: String,
     pub coordinates: Vec3d,
@@ -172,7 +210,7 @@ pub struct Poi {
     pub altitude: Option<f64>,
 }
 
-pub fn poi_to_processed_point(p: &Poi, database: &Database) -> ProcessedPosition {
+pub fn poi_to_processed_point(p: &OldPoi, database: &Database) -> ProcessedPosition {
     let sea_level = database.get(&p.container).unwrap().radius_body;
     ProcessedPosition {
         space_time_position: SpaceTimePosition::default(),
@@ -187,8 +225,11 @@ pub fn poi_to_processed_point(p: &Poi, database: &Database) -> ProcessedPosition
     }
 }
 
-pub fn get_current_container(pos: &Vec3d, database: &BTreeMap<String, Container>) -> Container {
-    let mut current_container = Container {
+pub fn get_current_container(
+    pos: &Vec3d,
+    database: &BTreeMap<String, OldContainer>,
+) -> OldContainer {
+    let mut current_container = OldContainer {
         name: "Space".to_string(),
         coordinates: Vec3d::new(0.0, 0.0, 0.0),
         quaternions: Vec4d::new(0.0, 0.0, 0.0, 0.0),

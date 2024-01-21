@@ -5445,8 +5445,8 @@
                 }
             }
         },
-        "microTech": {
-            "Name": "microTech",
+        "MicroTech": {
+            "Name": "MicroTech",
             "X": 22462085.252,
             "Y": 37185744.965,
             "Z": 0.0,
@@ -5468,7 +5468,7 @@
             "POI": {
                 "OM-1": {
                     "Name": "OM-1",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 0.0,
                     "Y": 0.0,
                     "Z": 1439.593,
@@ -5480,7 +5480,7 @@
                 },
                 "OM-2": {
                     "Name": "OM-2",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 0.0,
                     "Y": 0.0,
                     "Z": -1439.593,
@@ -5492,7 +5492,7 @@
                 },
                 "OM-3": {
                     "Name": "OM-3",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 0.0,
                     "Y": 1439.593,
                     "Z": 0.0,
@@ -5504,7 +5504,7 @@
                 },
                 "OM-4": {
                     "Name": "OM-4",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 0.0,
                     "Y": -1439.593,
                     "Z": 0.0,
@@ -5516,7 +5516,7 @@
                 },
                 "OM-5": {
                     "Name": "OM-5",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 1439.593,
                     "Y": 0.0,
                     "Z": 0.0,
@@ -5528,7 +5528,7 @@
                 },
                 "OM-6": {
                     "Name": "OM-6",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -1439.593,
                     "Y": 0.0,
                     "Z": 0.0,
@@ -5540,7 +5540,7 @@
                 },
                 "New Babbage": {
                     "Name": "New Babbage",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 520.723,
                     "Y": 419.364,
                     "Z": 743.655,
@@ -5552,7 +5552,7 @@
                 },
                 "Port Tressler": {
                     "Name": "Port Tressler",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 561.471,
                     "Y": 545.853,
                     "Z": 808.832,
@@ -5564,7 +5564,7 @@
                 },
                 "Comm Array ST4-22": {
                     "Name": "Comm Array ST4-22",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -771.345,
                     "Y": -919.253,
                     "Z": 24.0,
@@ -5576,7 +5576,7 @@
                 },
                 "Rayari Deltana Research Outpost": {
                     "Name": "Rayari Deltana Research Outpost",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -693.91,
                     "Y": -648.299,
                     "Z": 316.681,
@@ -5588,7 +5588,7 @@
                 },
                 "Shubin Mining Facility SM0-10": {
                     "Name": "Shubin Mining Facility SM0-10",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 85.476,
                     "Y": -950.856,
                     "Z": 298.799,
@@ -5600,7 +5600,7 @@
                 },
                 "Shubin Mining Facility SM0-13": {
                     "Name": "Shubin Mining Facility SM0-13",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -172.819,
                     "Y": -981.308,
                     "Z": 97.767,
@@ -5612,7 +5612,7 @@
                 },
                 "Shubin Mining Facility SM0-18": {
                     "Name": "Shubin Mining Facility SM0-18",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 920.21,
                     "Y": -389.542,
                     "Z": 43.837,
@@ -5624,7 +5624,7 @@
                 },
                 "Shubin Mining Facility SM0-22": {
                     "Name": "Shubin Mining Facility SM0-22",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 24.299,
                     "Y": -822.591,
                     "Z": 568.174,
@@ -5636,7 +5636,7 @@
                 },
                 "MT DataCenter 2UB-RB9-5": {
                     "Name": "MT DataCenter 2UB-RB9-5",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 907.102,
                     "Y": 139.922,
                     "Z": -397.434,
@@ -5648,7 +5648,7 @@
                 },
                 "MT DataCenter 4HJ-LVE-A": {
                     "Name": "MT DataCenter 4HJ-LVE-A",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -100.656,
                     "Y": 962.479,
                     "Z": -255.491,
@@ -5660,7 +5660,7 @@
                 },
                 "MT DataCenter 5WQ-R2V-C": {
                     "Name": "MT DataCenter 5WQ-R2V-C",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 959.827,
                     "Y": 40.202,
                     "Z": -279.233,
@@ -5672,7 +5672,7 @@
                 },
                 "MT DataCenter 8FK-Q2X-K": {
                     "Name": "MT DataCenter 8FK-Q2X-K",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 22.273,
                     "Y": 2.974,
                     "Z": -1000.725,
@@ -5684,7 +5684,7 @@
                 },
                 "MT DataCenter D79-ECG-R": {
                     "Name": "MT DataCenter D79-ECG-R",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 201.182,
                     "Y": 308.978,
                     "Z": -929.668,
@@ -5696,7 +5696,7 @@
                 },
                 "MT DataCenter E2Q-NSG-Y": {
                     "Name": "MT DataCenter E2Q-NSG-Y",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 916.82,
                     "Y": 187.359,
                     "Z": -354.077,
@@ -5708,7 +5708,7 @@
                 },
                 "MT DataCenter QVX-J88-J": {
                     "Name": "MT DataCenter QVX-J88-J",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -247.573,
                     "Y": 892.65,
                     "Z": -380.107,
@@ -5720,7 +5720,7 @@
                 },
                 "MT DataCenter TMG-XEV-2": {
                     "Name": "MT DataCenter TMG-XEV-2",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -160.905,
                     "Y": 62.279,
                     "Z": 986.022,
@@ -5732,7 +5732,7 @@
                 },
                 "MT DataCenter L8P-JUC-8": {
                     "Name": "MT DataCenter L8P-JUC-8",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -86.389,
                     "Y": 218.654,
                     "Z": -972.076,
@@ -5744,7 +5744,7 @@
                 },
                 "MT SecurityCenter DDV-6": {
                     "Name": "MT SecurityCenter DDV-6",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 68.516,
                     "Y": 64.213,
                     "Z": -996.492,
@@ -5756,7 +5756,7 @@
                 },
                 "MT DataCenter KH3-AAE-L": {
                     "Name": "MT DataCenter KH3-AAE-L",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -468.8,
                     "Y": 801.495,
                     "Z": -375.462,
@@ -5768,7 +5768,7 @@
                 },
                 "Calhoun Pass Emergency Shelter": {
                     "Name": "Calhoun Pass Emergency Shelter",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 938.116,
                     "Y": -347.818,
                     "Z": 31.708,
@@ -5780,7 +5780,7 @@
                 },
                 "Clear View Emergency Shelter": {
                     "Name": "Clear View Emergency Shelter",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -609.561,
                     "Y": -688.363,
                     "Z": 393.203,
@@ -5792,7 +5792,7 @@
                 },
                 "Nuiqsut Emergency Shelter": {
                     "Name": "Nuiqsut Emergency Shelter",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 750.613,
                     "Y": -207.852,
                     "Z": -627.225,
@@ -5804,7 +5804,7 @@
                 },
                 "Point Wain Emergency Shelter": {
                     "Name": "Point Wain Emergency Shelter",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -627.441,
                     "Y": -485.258,
                     "Z": 611.733,
@@ -5816,7 +5816,7 @@
                 },
                 "Necropolis (Stash House)": {
                     "Name": "Necropolis (Stash House)",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 63.643,
                     "Y": -162.085,
                     "Z": 985.651,
@@ -5828,7 +5828,7 @@
                 },
                 "Outpost 54 (Stash House)": {
                     "Name": "Outpost 54 (Stash House)",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 113.566,
                     "Y": 14.479,
                     "Z": -994.363,
@@ -5840,7 +5840,7 @@
                 },
                 "Lake Outpost": {
                     "Name": "Lake Outpost",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 808.992,
                     "Y": 416.701,
                     "Z": 415.719,
@@ -5852,7 +5852,7 @@
                 },
                 "West Babbage Outpost": {
                     "Name": "West Babbage Outpost",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 559.23,
                     "Y": 386.6,
                     "Z": 733.438,
@@ -5864,7 +5864,7 @@
                 },
                 "East Babbage Outpost": {
                     "Name": "East Babbage Outpost",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 488.767,
                     "Y": 440.986,
                     "Z": 754.061,
@@ -5876,7 +5876,7 @@
                 },
                 "KH3 Outpost": {
                     "Name": "KH3 Outpost",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -458.538,
                     "Y": 807.321,
                     "Z": -372.023,
@@ -5888,7 +5888,7 @@
                 },
                 "SM0-13 Outpost": {
                     "Name": "SM0-13 Outpost",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -154.476,
                     "Y": -984.298,
                     "Z": 94.002,
@@ -5898,9 +5898,9 @@
                     "qz": 0.0,
                     "QTMarker": "FALSE"
                 },
-                "microTech Cave N39 [F]": {
-                    "Name": "microTech Cave N39 [F]",
-                    "Container": "microTech",
+                "MicroTech Cave N39 [F]": {
+                    "Name": "MicroTech Cave N39 [F]",
+                    "Container": "MicroTech",
                     "X": 679.115,
                     "Y": 379.185,
                     "Z": 630.074,
@@ -5910,9 +5910,9 @@
                     "qz": 0.9020437,
                     "QTMarker": "FALSE"
                 },
-                "microTech Cave N71 [F]": {
-                    "Name": "microTech Cave N71 [F]",
-                    "Container": "microTech",
+                "MicroTech Cave N71 [F]": {
+                    "Name": "MicroTech Cave N71 [F]",
+                    "Container": "MicroTech",
                     "X": 209.189,
                     "Y": -260.05,
                     "Z": 944.768,
@@ -5922,9 +5922,9 @@
                     "qz": -0.00317431,
                     "QTMarker": "FALSE"
                 },
-                "microTech Cave S01 [S]": {
-                    "Name": "microTech Cave S01 [S]",
-                    "Container": "microTech",
+                "MicroTech Cave S01 [S]": {
+                    "Name": "MicroTech Cave S01 [S]",
+                    "Container": "MicroTech",
                     "X": -428.145,
                     "Y": 903.758,
                     "Z": -31.124,
@@ -5934,9 +5934,9 @@
                     "qz": 0.15222032,
                     "QTMarker": "FALSE"
                 },
-                "microTech Cave N20 [FVS]": {
-                    "Name": "microTech Cave N20 [FVS]",
-                    "Container": "microTech",
+                "MicroTech Cave N20 [FVS]": {
+                    "Name": "MicroTech Cave N20 [FVS]",
+                    "Container": "MicroTech",
                     "X": 940.94,
                     "Y": -23.79,
                     "Z": 343.679,
@@ -5946,9 +5946,9 @@
                     "qz": -0.39744779,
                     "QTMarker": "FALSE"
                 },
-                "microTech Cave N48 [FV]": {
-                    "Name": "microTech Cave N48 [FV]",
-                    "Container": "microTech",
+                "MicroTech Cave N48 [FV]": {
+                    "Name": "MicroTech Cave N48 [FV]",
+                    "Container": "MicroTech",
                     "X": 495.285,
                     "Y": 446.713,
                     "Z": 749.188,
@@ -5958,9 +5958,9 @@
                     "qz": -0.31079426,
                     "QTMarker": "FALSE"
                 },
-                "microTech Cave N02 [S]": {
-                    "Name": "microTech Cave N02 [S]",
-                    "Container": "microTech",
+                "MicroTech Cave N02 [S]": {
+                    "Name": "MicroTech Cave N02 [S]",
+                    "Container": "MicroTech",
                     "X": 914.967,
                     "Y": -405.203,
                     "Z": 40.825,
@@ -5972,7 +5972,7 @@
                 },
                 "Caterpillar D Wreck": {
                     "Name": "Caterpillar D Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 422.031,
                     "Y": 170.819,
                     "Z": 890.497,
@@ -5984,7 +5984,7 @@
                 },
                 "Caterpillar C Wreck": {
                     "Name": "Caterpillar C Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -267.953,
                     "Y": 310.782,
                     "Z": 912.086,
@@ -5996,7 +5996,7 @@
                 },
                 "Caterpillar B Wreck": {
                     "Name": "Caterpillar B Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -223.634,
                     "Y": 218.519,
                     "Z": 949.902,
@@ -6008,7 +6008,7 @@
                 },
                 "Caterpillar A Wreck": {
                     "Name": "Caterpillar A Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -174.985,
                     "Y": 978.259,
                     "Z": -116.907,
@@ -6020,7 +6020,7 @@
                 },
                 "Constellation A Wreck": {
                     "Name": "Constellation A Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -167.21,
                     "Y": 960.391,
                     "Z": -228.48,
@@ -6032,7 +6032,7 @@
                 },
                 "Constellation B Wreck": {
                     "Name": "Constellation B Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 376.776,
                     "Y": 920.916,
                     "Z": -105.956,
@@ -6044,7 +6044,7 @@
                 },
                 "Constellation D Wreck": {
                     "Name": "Constellation D Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -676.718,
                     "Y": -728.925,
                     "Z": 112.13,
@@ -6056,7 +6056,7 @@
                 },
                 "Constellation C Wreck": {
                     "Name": "Constellation C Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 875.201,
                     "Y": -465.38,
                     "Z": -142.682,
@@ -6068,7 +6068,7 @@
                 },
                 "Freelancer B Wreck": {
                     "Name": "Freelancer B Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -933.3,
                     "Y": -309.024,
                     "Z": -189.532,
@@ -6080,7 +6080,7 @@
                 },
                 "Freelancer D Wreck": {
                     "Name": "Freelancer D Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -683.477,
                     "Y": -719.405,
                     "Z": 134.431,
@@ -6092,7 +6092,7 @@
                 },
                 "Freelancer C Wreck": {
                     "Name": "Freelancer C Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -973.704,
                     "Y": -225.635,
                     "Z": 40.8,
@@ -6104,7 +6104,7 @@
                 },
                 "Freelancer A Wreck": {
                     "Name": "Freelancer A Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -686.688,
                     "Y": -719.067,
                     "Z": 111.168,
@@ -6116,7 +6116,7 @@
                 },
                 "Starfarer D Wreck": {
                     "Name": "Starfarer D Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -588.09,
                     "Y": 805.331,
                     "Z": -78.362,
@@ -6128,7 +6128,7 @@
                 },
                 "Starfarer C Wreck": {
                     "Name": "Starfarer C Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 9.472,
                     "Y": 103.8,
                     "Z": 995.341,
@@ -6140,7 +6140,7 @@
                 },
                 "Starfarer B Wreck": {
                     "Name": "Starfarer B Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -637.938,
                     "Y": 747.782,
                     "Z": 185.558,
@@ -6152,7 +6152,7 @@
                 },
                 "Starfarer A Wreck": {
                     "Name": "Starfarer A Wreck",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -226.008,
                     "Y": 212.797,
                     "Z": 950.747,
@@ -6164,7 +6164,7 @@
                 },
                 "Ghost Hollow": {
                     "Name": "Ghost Hollow",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": -127.194,
                     "Y": 982.004,
                     "Z": 149.145,
@@ -6176,7 +6176,7 @@
                 },
                 "Test Facility Octagon": {
                     "Name": "Test Facility Octagon",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 635.765,
                     "Y": -155.464,
                     "Z": 758.837,
@@ -6188,7 +6188,7 @@
                 },
                 "Chestnuts on an open fire": {
                     "Name": "Chestnuts on an open fire",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 520.693,
                     "Y": 419.26,
                     "Z": 743.714,
@@ -6200,7 +6200,7 @@
                 },
                 "Lakeside Chairs": {
                     "Name": "Lakeside Chairs",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 524.873,
                     "Y": 425.683,
                     "Z": 737.102,
@@ -6212,7 +6212,7 @@
                 },
                 "Mountainside Chairs": {
                     "Name": "Mountainside Chairs",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 506.682,
                     "Y": 421.171,
                     "Z": 754.683,
@@ -6224,7 +6224,7 @@
                 },
                 "Tears of Fire Painting": {
                     "Name": "Tears of Fire Painting",
-                    "Container": "microTech",
+                    "Container": "MicroTech",
                     "X": 518.388,
                     "Y": 416.271,
                     "Z": 747.876,
@@ -6234,9 +6234,9 @@
                     "qz": 0.0,
                     "QTMarker": "FALSE"
                 },
-                "microTech River (lake)": {
-                    "Name": "microTech River (lake)",
-                    "Container": "microTech",
+                "MicroTech River (lake)": {
+                    "Name": "MicroTech River (lake)",
+                    "Container": "MicroTech",
                     "X": 809.509,
                     "Y": 415.291,
                     "Z": 415.788,
@@ -6246,9 +6246,9 @@
                     "qz": 0.0,
                     "QTMarker": "FALSE"
                 },
-                "microTech River (head)": {
-                    "Name": "microTech River (head)",
-                    "Container": "microTech",
+                "MicroTech River (head)": {
+                    "Name": "MicroTech River (head)",
+                    "Container": "MicroTech",
                     "X": 806.117,
                     "Y": 424.57,
                     "Z": 414.685,
