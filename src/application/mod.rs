@@ -26,6 +26,7 @@ use regex::Regex;
 use std::{
     collections::HashMap,
     f64::{consts::PI, NAN},
+    time::Duration,
 };
 use uuid::Uuid;
 
@@ -296,5 +297,8 @@ impl eframe::App for MyEguiApp {
 
         // Display NEW everything
         self.display(ctx);
+
+        // Auto refresh ~30 FPS
+        ctx.request_repaint_after(Duration::from_millis(33));
     }
 }

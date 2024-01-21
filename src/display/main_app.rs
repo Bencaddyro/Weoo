@@ -252,7 +252,6 @@ impl MyEguiApp {
         ui.vertical(|ui| {
             ui.horizontal(|ui| {
                 ui.heading("Self Position");
-                ui.spinner();
             });
 
             if let Some(current_path) = self.global_paths.get(&self.path_selector) {
