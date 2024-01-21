@@ -15,16 +15,19 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 
+use crate::prelude::*;
+
 use chrono::Duration;
 use egui::Color32;
 use egui_plot::MarkerShape;
-
-use crate::{
-    geolib::{poi_to_processed_point, Poi, ProcessedPosition},
-    guilib::random_color32,
-    Database,
+use std::{
+    collections::{BTreeMap, HashMap},
+    f64::{consts::PI, NAN},
 };
-use std::f64::{consts::PI, NAN};
+
+pub type Paths = HashMap<String, Path>;
+pub type Targets = Vec<Target>;
+pub type Database = BTreeMap<String, Container>;
 
 #[derive(Debug)]
 pub struct Target {

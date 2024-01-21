@@ -15,73 +15,16 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 //
 
-use crate::{
-    iolib::{import_history, save_history, save_to_poi},
-    mainlib::{Path, Target},
-    MyEguiApp,
-};
-use chrono::Duration;
+use crate::prelude::*;
+
 use egui::{
-    color_picker::color_picker_color32, CollapsingHeader, Color32, ComboBox, Context, Grid, Pos2,
+    color_picker::color_picker_color32, CollapsingHeader, Color32, ComboBox, Context, Grid,
     RichText, TextEdit, TopBottomPanel, Ui,
 };
 use egui_plot::{Line, Plot, Points};
-use rand::Rng;
-use std::f64::{consts::PI, NAN};
 
-static mut SMARTY: String = String::new(); // Dirty (but working way) too get snapped point on graph see https://github.com/emilk/egui/discussions/1778
-
-pub fn pretty(a: f64) -> String {
-    let degrees = a.to_degrees().trunc();
-    let minutes = (a.to_degrees().fract() * 60.0).trunc().abs();
-    let seconds = ((a.to_degrees().fract() * 60.0).fract() * 60.0)
-        .trunc()
-        .abs();
-    format!("{degrees}° {minutes}’ {seconds}”")
-}
-
-pub fn pretty_duration(a: Duration) -> String {
-    let seconds = a.num_seconds() % 60;
-    let minutes = (a.num_seconds() / 60) % 60;
-    let hours = (a.num_seconds() / 60) / 60;
-    format!("{:0>2}:{:0>2}:{:0>2}", hours, minutes, seconds)
-}
-
-// pub fn legend(a: f64, b: usize, range: &RangeInclusive<f64>) -> String {
-//     let degrees = a.to_degrees().trunc();
-//     format!("{degrees}°")
-// }
-
-// pub fn grid(range: GridInput) -> Vec<GridMark> {
-//     let mut mark = Vec::new();
-//     let (a, b) = range.bounds;
-//     let (a, b) = (a.to_degrees().trunc() as i64, b.to_degrees().trunc() as i64);
-//     let aa = (a / 10) * 10;
-//     for i in (aa..b).step_by(10) {
-//         mark.push(GridMark {
-//             value: (i as f64).to_radians(),
-//             step_size: 25.0,
-//         })
-//     }
-//     mark
-// }
-
-pub fn borked_cig_heading(a: f64) -> String {
-    let a = (a + PI + PI) % (PI + PI);
-    let degrees = a.to_degrees();
-    let graduation = (degrees / 5.0) as i64 * 5;
-    let minutes = (degrees % 5.0 * 60.0).trunc();
-
-    format!("{graduation}°{minutes}’")
-}
-
-pub fn random_color32() -> Color32 {
-    Color32::from_rgb(
-        rand::thread_rng().gen(),
-        rand::thread_rng().gen(),
-        rand::thread_rng().gen(),
-    )
-}
+/// Dirty (but working way) too get snapped point on graph see [issue](https://github.com/emilk/egui/discussions/1778)
+static mut SMARTY: String = String::new();
 
 impl MyEguiApp {
     pub fn display(&mut self, ctx: &Context) {
@@ -640,100 +583,5 @@ impl MyEguiApp {
                 self.new_coordinates_from_map(latitude, longitude);
             }
         });
-    }
-}
-
-impl Target {
-    pub fn display(&mut self, ctx: &Context) {
-        egui::Window::new(format!(
-            "{} - {}",
-            self.current_point.container_name, self.current_point.name
-        ))
-        .default_pos(Pos2::new(400.0, 800.0))
-        .open(&mut self.widget_open)
-        .show(ctx, |ui| {
-            egui::Grid::new("MainGrid").show(ui, |ui| {
-                ui.label("Latitute:");
-                ui.label(pretty(self.current_point.latitude));
-                ui.end_row();
-                ui.label("Longitude:");
-                ui.label(pretty(self.current_point.longitude));
-                ui.end_row();
-                ui.label("Altitude:");
-                ui.label(format!("{:.3}km", self.current_point.altitude));
-                ui.end_row();
-                ui.label("Distance:");
-                ui.label(format!("{:.3}km", self.current_distance));
-                ui.end_row();
-                ui.label("Heading:");
-                ui.label(pretty(self.current_heading));
-                ui.end_row();
-                ui.label("CIG Heading:");
-                ui.label(borked_cig_heading(self.current_heading));
-                ui.end_row();
-            });
-        });
-    }
-}
-
-impl Path {
-    pub fn display(&mut self, ctx: &Context) {
-        self.current_index = self.current_index.clamp(0, self.history.len());
-        let current_point = if self.current_index < 1 {
-            None
-        } else {
-            self.history.get(self.current_index - 1)
-        };
-
-        egui::Window::new(format!("Path - {}", self.name))
-            .default_pos(Pos2::new(400.0, 800.0))
-            .open(&mut self.widget_open)
-            .show(ctx, |ui| {
-                egui::Grid::new("MainGrid").show(ui, |ui| {
-                    ui.horizontal(|ui| {
-                        if ui.button("⏴").clicked() & (self.current_index > 0) {
-                            self.current_index -= 1;
-                        };
-                        if ui.button("⏵").clicked() & (self.current_index < self.history.len()) {
-                            self.current_index += 1;
-                        };
-
-                        ui.heading(format!("{}/{}", self.current_index, self.history.len()));
-                    });
-                    ui.heading(
-                        current_point
-                            .map(|p| p.name.to_string())
-                            .unwrap_or_default(),
-                    );
-                    ui.end_row();
-                    ui.label("Latitute:");
-                    ui.label(pretty(current_point.map(|p| p.latitude).unwrap_or(NAN)));
-                    ui.end_row();
-                    ui.label("Longitude:");
-                    ui.label(pretty(current_point.map(|p| p.longitude).unwrap_or(NAN)));
-                    ui.end_row();
-                    ui.label("Altitude:");
-                    ui.label(format!(
-                        "{:.3}km",
-                        current_point.map(|p| p.altitude).unwrap_or(NAN)
-                    ));
-                    ui.end_row();
-                    ui.label("Distance:");
-                    ui.label(format!("{:.3}km", self.current_distance));
-                    ui.end_row();
-                    ui.label("Heading:");
-                    ui.label(pretty(self.current_heading));
-                    ui.end_row();
-                    ui.label("CIG Heading:");
-                    ui.label(borked_cig_heading(self.current_heading));
-                    ui.end_row();
-                    ui.label("Duration:");
-                    ui.label(pretty_duration(self.duration));
-                    ui.end_row();
-                    ui.label("Lenght:");
-                    ui.label(format!("{:.3}km", self.length));
-                    ui.end_row();
-                });
-            });
     }
 }
