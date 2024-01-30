@@ -66,7 +66,7 @@ pub struct Path {
 }
 
 impl Target {
-    pub fn new(target: &OldPoi, database: &Database) -> Self {
+    pub fn new(target: &OldPoi, database: &NewDatabase) -> Self {
         Self {
             widget_open: true,
             current_point: poi_to_processed_point(target, database),
@@ -78,9 +78,9 @@ impl Target {
         }
     }
 
-    pub fn update(&mut self, database: &Database, current_position: Option<&ProcessedPosition>) {
+    pub fn update(&mut self, database: &NewDatabase, current_position: Option<&ProcessedPosition>) {//TODO new database
         if let Some(complete_position) = current_position {
-            let target_container = database.get(&self.current_point.container_name).unwrap();
+            let target_container = database.containers.get(&self.current_point.container_name).unwrap();
             // #Grab the rotation speed of the container in the Database and convert it in degrees/s
             let target_rotation_speed_in_hours_per_rotation = target_container.rotation_speed;
 
@@ -146,7 +146,7 @@ impl Path {
         }
     }
 
-    pub fn update(&mut self, database: &Database, complete_position: Option<&ProcessedPosition>) {
+    pub fn update(&mut self, database: &NewDatabase, complete_position: Option<&ProcessedPosition>) {
         // Update path lenght
         self.length = 0.0;
         if !self.history.is_empty() {
@@ -168,7 +168,7 @@ impl Path {
                 let index = self.current_index.clamp(1, self.history.len()) - 1;
                 let target_local_coordinates = self.history[index].local_coordinates;
 
-                let target_container = database.get(&self.history[0].container_name).unwrap();
+                let target_container = database.containers.get(&self.history[0].container_name).unwrap();
                 // #Grab the rotation speed of the container in the Database and convert it in degrees/s
                 let target_rotation_speed_in_hours_per_rotation = target_container.rotation_speed;
 

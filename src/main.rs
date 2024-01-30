@@ -51,20 +51,20 @@ static REFERENCE_TIME: Lazy<DateTime<Utc>> =
     Lazy::new(|| Utc.with_ymd_and_hms(2020, 1, 1, 0, 0, 0).unwrap());
 
 /// Main entrypoint, run MyEguiApp (name to be changed someday)
-// fn main() -> eframe::Result<()> {
-//     let native_options = eframe::NativeOptions::default();
-//     eframe::run_native(
-//         "Weoo Nav Tool",
-//         native_options,
-//         Box::new(|cc| Box::new(MyEguiApp::new(cc))),
-//     )
-// }
-
-fn main() {
-    let old = load_database();
-    let new = convert_old_to_new(old);
-    write_db_to_local(&new);
-
-    let db = load_newdatabase();
-    db_checker(&db);
+fn main() -> eframe::Result<()> {
+    let native_options = eframe::NativeOptions::default();
+    eframe::run_native(
+        "Weoo Nav Tool",
+        native_options,
+        Box::new(|cc| Box::new(MyEguiApp::new(cc))),
+    )
 }
+
+// fn main() {
+//     let old = load_database();
+//     let new = convert_old_to_new(old);
+//     write_db_to_local(&new);
+//
+//     let db = load_newdatabase();
+//     db_checker(&db);
+// }

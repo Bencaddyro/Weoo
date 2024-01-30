@@ -100,7 +100,7 @@ impl Vec3d {
         self.norm() - sea_level
     }
 
-    pub fn transform_to_local(&self, time_elapsed: f64, container: &OldContainer) -> Vec3d {
+    pub fn transform_to_local(&self, time_elapsed: f64, container: &Container) -> Vec3d { //TODO new container
         let rotation_speed_in_degrees_per_second = 0.1 * (1.0 / container.rotation_speed);
         let rotation_state_in_degrees = (rotation_speed_in_degrees_per_second * time_elapsed
             + container.rotation_adjust)
@@ -210,8 +210,8 @@ pub struct OldPoi {
     pub altitude: Option<f64>,
 }
 
-pub fn poi_to_processed_point(p: &OldPoi, database: &Database) -> ProcessedPosition {
-    let sea_level = database.get(&p.container).unwrap().radius_body;
+pub fn poi_to_processed_point(p: &OldPoi, database: &NewDatabase) -> ProcessedPosition {
+    let sea_level = database.containers.get(&p.container).unwrap().radius_body;
     ProcessedPosition {
         space_time_position: SpaceTimePosition::default(),
         local_coordinates: p.coordinates,
@@ -225,32 +225,14 @@ pub fn poi_to_processed_point(p: &OldPoi, database: &Database) -> ProcessedPosit
     }
 }
 
-pub fn get_current_container(
-    pos: &Vec3d,
-    database: &BTreeMap<String, OldContainer>,
-) -> OldContainer {
-    let mut current_container = OldContainer {
-        name: "Space".to_string(),
-        coordinates: Vec3d::new(0.0, 0.0, 0.0),
-        quaternions: Vec4d::new(0.0, 0.0, 0.0, 0.0),
-        marker: false,
-        radius_om: 0.0,
-        radius_body: 0.0,
-        radius_arrival: 0.0,
-        time_lines: 0.0,
-        rotation_speed: 0.0,
-        rotation_adjust: 0.0,
-        orbital_radius: 0.0,
-        orbital_speed: 0.0,
-        orbital_angle: 0.0,
-        grid_radius: 0.0,
-        poi: BTreeMap::new(),
-    };
-
-    for c in database.values() {
-        if (c.coordinates - *pos).norm() <= 3.0 * c.radius_om {
-            current_container = c.clone();
+pub fn get_current_container<'a>(pos: &Vec3d, database: &'a NewDatabase) -> &'a Container {
+    for container in database.containers.into_values() {
+        match container {
+            Container::Node(node) => {
+                // if absolute position minus absolute position of containe is < container radius then return container name
+            }
+            _ => (),
         }
     }
-    current_container
+    database.containers.get("StantonSystem").unwrap()
 }
