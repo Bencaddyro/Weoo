@@ -59,3 +59,12 @@ fn main() -> eframe::Result<()> {
         Box::new(|cc| Box::new(MyEguiApp::new(cc))),
     )
 }
+
+// fn main() {
+//     let old = load_database();
+//     let new = convert_old_to_new(old);
+//     write_db_to_local(&new);
+//
+//     let db = load_newdatabase();
+//     db_checker(&db);
+// }

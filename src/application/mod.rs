@@ -37,7 +37,7 @@ pub struct MyEguiApp {
     pub path_name_io: String,
 
     // Data
-    pub database: Database,
+    pub database: NewDatabase,
 
     // App State
     pub current_heading: f64,
@@ -65,50 +65,13 @@ impl MyEguiApp {
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
 
-        let database = load_database();
-        // Hardcode targets example for Daymar Rally
-        // let target1 = database
-        //     .get("Yela")
-        //     .unwrap()
-        //     .poi
-        //     .get("BennyHenge")
-        //     .unwrap()
-        //     .to_owned();
-        let target1 = database
-            .get("Daymar")
-            .unwrap()
-            .poi
-            .get("Better Shubin")
-            .unwrap()
-            .to_owned();
-        let target2 = database
-            .get("Daymar")
-            .unwrap()
-            .poi
-            .get("Better Eager")
-            .unwrap()
-            .to_owned();
-        let target3 = database
-            .get("Daymar")
-            .unwrap()
-            .poi
-            .get("Better Kudre")
-            .unwrap()
-            .to_owned();
-
-        let targets = vec![
-            Target::new(&target1, &database),
-            Target::new(&target2, &database),
-            Target::new(&target3, &database),
-        ];
-
         let clipboard = match Clipboard::new() {
             Ok(clipboard) => clipboard,
             Err(e) => panic!("Error fetching clipoard: {e}"),
         };
 
         MyEguiApp {
-            database,
+            database: load_newdatabase(),
             clipboard,
             space_time_position: SpaceTimePosition::default(),
             path_name_io: String::new(),
@@ -116,7 +79,7 @@ impl MyEguiApp {
             global_history: Vec::new(),
             global_history_widget: false,
             global_paths: HashMap::from([("Self".to_string(), Path::new("Self".to_string()))]),
-            global_targets: targets,
+            global_targets: Vec::default(),
             path_selector: "Self".to_string(),
             path_add_point: true,
             target_selector_poi: String::new(),
@@ -249,9 +212,9 @@ impl MyEguiApp {
                 .unwrap();
         let caps = re.captures(&content)?;
         let coordinates = Vec3d::new(
-            caps["x"].parse::<f64>().unwrap() / 1000.0,
-            caps["y"].parse::<f64>().unwrap() / 1000.0,
-            caps["z"].parse::<f64>().unwrap() / 1000.0,
+            caps["x"].parse::<f64>().unwrap(),
+            caps["y"].parse::<f64>().unwrap(),
+            caps["z"].parse::<f64>().unwrap(),
         );
         Some(SpaceTimePosition {
             coordinates,

@@ -353,7 +353,8 @@ impl MyEguiApp {
                             let new_poi = save_to_poi(position);
                             // Add to database
                             self.database
-                                .get_mut(&new_poi.container)
+                                .containers
+                                .get_mut(&new_poi.container) //TODO get match for system/node
                                 .unwrap()
                                 .poi
                                 .insert(new_poi.name.clone(), new_poi);
@@ -403,7 +404,7 @@ impl MyEguiApp {
                 ComboBox::from_id_source("Container")
                     .selected_text(&self.target_selector_container)
                     .show_ui(ui, |ui| {
-                        for container in self.database.values() {
+                        for container in self.database.containers.values() {
                             ui.selectable_value(
                                 &mut self.target_selector_container,
                                 container.name.clone(),
@@ -417,9 +418,14 @@ impl MyEguiApp {
                 ComboBox::from_id_source("Poi")
                     .selected_text(&self.target_selector_poi)
                     .show_ui(ui, |ui| {
-                        if self.database.contains_key(&self.target_selector_container) {
+                        if self
+                            .database
+                            .containers
+                            .contains_key(&self.target_selector_container)
+                        {
                             for poi in self
                                 .database
+                                .containers
                                 .get(&self.target_selector_container)
                                 .unwrap()
                                 .poi
@@ -436,10 +442,14 @@ impl MyEguiApp {
                 ui.end_row();
 
                 if ui.button("Add Target").clicked()
-                    & self.database.contains_key(&self.target_selector_container)
+                    & self
+                        .database
+                        .containers
+                        .contains_key(&self.target_selector_container)
                 {
                     if let Some(poi) = self
                         .database
+                        .containers
                         .get(&self.target_selector_container)
                         .unwrap()
                         .poi
