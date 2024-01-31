@@ -255,6 +255,8 @@ pub fn convert_old_to_new(datatabse: BTreeMap<String, OldContainer>) -> NewDatab
                 y: 0.0,
                 z: 0.0,
             },
+            radius_body: oldcontainer.radius_body,
+            radius_om: oldcontainer.radius_om,
             ..Default::default()
         };
         println!("{quaternion:?}");

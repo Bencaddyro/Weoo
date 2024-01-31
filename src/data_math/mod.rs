@@ -100,7 +100,8 @@ impl Vec3d {
         self.norm() - sea_level
     }
 
-    pub fn transform_to_local(&self, time_elapsed: f64, container: &Container) -> Vec3d { //TODO new container
+    pub fn transform_to_local(&self, time_elapsed: f64, container: &Container) -> Vec3d {
+        //TODO new container
         let rotation_speed_in_degrees_per_second = 0.1 * (1.0 / container.rotation_speed);
         let rotation_state_in_degrees = (rotation_speed_in_degrees_per_second * time_elapsed
             + container.rotation_adjust)
@@ -161,6 +162,10 @@ pub struct Node {
     pub self_rotation: Vec4d,
     /// Rotation offset in radians
     pub rotation_offset: f64,
+    /// Body radius
+    pub radius_body: f64,
+    /// OM (?) radius
+    pub radius_om: f64,
     /// List of all POIs inside this container
     pub pois: BTreeMap<String, PointOfInterest>,
     /// List of all containers inside this container
@@ -182,20 +187,20 @@ pub struct PointOfInterest {
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
 pub struct OldContainer {
-    pub name: String,
-    pub coordinates: Vec3d,
-    pub quaternions: Vec4d,
-    pub marker: bool,
-    pub radius_om: f64,
-    pub radius_body: f64,
-    pub radius_arrival: f64,
-    pub time_lines: f64,
-    pub rotation_speed: f64,
-    pub rotation_adjust: f64,
-    pub orbital_radius: f64,
-    pub orbital_speed: f64,
-    pub orbital_angle: f64,
-    pub grid_radius: f64,
+    pub name: String,         //DONE
+    pub coordinates: Vec3d,   //DONE
+    pub quaternions: Vec4d,   //useless
+    pub marker: bool,         //useless ?
+    pub radius_om: f64,       //useless
+    pub radius_body: f64,     //TODO
+    pub radius_arrival: f64,  //useless
+    pub time_lines: f64,      //useless
+    pub rotation_speed: f64,  //DONE
+    pub rotation_adjust: f64, //DONE
+    pub orbital_radius: f64,  //useless
+    pub orbital_speed: f64,   //useless
+    pub orbital_angle: f64,   //useless
+    pub grid_radius: f64,     //useless
     pub poi: BTreeMap<String, OldPoi>,
 }
 #[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
@@ -210,26 +215,36 @@ pub struct OldPoi {
     pub altitude: Option<f64>,
 }
 
-pub fn poi_to_processed_point(p: &OldPoi, database: &NewDatabase) -> ProcessedPosition {
-    let sea_level = database.containers.get(&p.container).unwrap().radius_body;
-    ProcessedPosition {
-        space_time_position: SpaceTimePosition::default(),
-        local_coordinates: p.coordinates,
-        time_elapsed: 0.0,
-        container_name: p.container.to_string(),
-        name: p.name.to_string(),
-        latitude: p.coordinates.latitude(),
-        longitude: p.coordinates.longitude(),
-        altitude: p.coordinates.altitude(sea_level),
-        color: None,
+pub fn poi_to_processed_point(p: &OldPoi, database: &NewDatabase) -> Option<ProcessedPosition> {
+    if let Container::Node(node) = database.containers.get(&p.container).unwrap() {
+        let sea_level = node.radius_body;
+        Some(ProcessedPosition {
+            space_time_position: SpaceTimePosition::default(),
+            local_coordinates: p.coordinates,
+            time_elapsed: 0.0,
+            container_name: p.container.to_string(),
+            name: p.name.to_string(),
+            latitude: p.coordinates.latitude(),
+            longitude: p.coordinates.longitude(),
+            altitude: p.coordinates.altitude(sea_level),
+            color: None,
+        })
+    } else {
+        None
     }
 }
 
 pub fn get_current_container<'a>(pos: &Vec3d, database: &'a NewDatabase) -> &'a Container {
-    for container in database.containers.into_values() {
+    for ref container in database.containers.into_values() {
         match container {
             Container::Node(node) => {
                 // if absolute position minus absolute position of containe is < container radius then return container name
+                // if (c.coordinates - *pos).norm() <= 3.0 * c.radius_om
+                let absolute_center_container = Vec3d::default(); //TODO will need a time information !
+                let distance = (*pos - absolute_center_container).norm();
+                if distance <= 3.0 * node.radius_om {
+                    return container;
+                }
             }
             _ => (),
         }

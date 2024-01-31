@@ -352,7 +352,8 @@ impl MyEguiApp {
                         if ui.button("Save as POI").clicked() {
                             let new_poi = save_to_poi(position);
                             // Add to database
-                            self.database.containers
+                            self.database
+                                .containers
                                 .get_mut(&new_poi.container) //TODO get match for system/node
                                 .unwrap()
                                 .poi
@@ -417,9 +418,14 @@ impl MyEguiApp {
                 ComboBox::from_id_source("Poi")
                     .selected_text(&self.target_selector_poi)
                     .show_ui(ui, |ui| {
-                        if self.database.containers.contains_key(&self.target_selector_container) {
+                        if self
+                            .database
+                            .containers
+                            .contains_key(&self.target_selector_container)
+                        {
                             for poi in self
-                                .database.containers
+                                .database
+                                .containers
                                 .get(&self.target_selector_container)
                                 .unwrap()
                                 .poi
@@ -436,10 +442,14 @@ impl MyEguiApp {
                 ui.end_row();
 
                 if ui.button("Add Target").clicked()
-                    & self.database.containers.contains_key(&self.target_selector_container)
+                    & self
+                        .database
+                        .containers
+                        .contains_key(&self.target_selector_container)
                 {
                     if let Some(poi) = self
-                        .database.containers
+                        .database
+                        .containers
                         .get(&self.target_selector_container)
                         .unwrap()
                         .poi
